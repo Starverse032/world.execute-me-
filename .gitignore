@@ -1,0 +1,9 @@
+node_modules/
+out/
+art/
+# The song is not included (copyright). Put your own copy here; see README.md.
+public/song.mp3
+*.mp4
+*.flac
+*.wav
+.DS_Store
