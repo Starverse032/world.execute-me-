@@ -104,7 +104,7 @@ npm run render:4k
 - 音轨是 `public/song.mp3` 的原始 mp3 帧，不重新编码；前面加了 95 个静音帧，正片音乐比提示卡结束晚 6.7 ms，不到 1 帧；
 - 字幕用 `subtitles/world.execute(me)_release_zh.srt`。
 
-需要 NVIDIA 显卡：Remotion 自带的 `libx265` 只能编 8-bit，`hevc_nvenc` 才能编 10-bit。约需 30 GB 硬盘空间。在 24 线程的笔记本上，帧渲染约 70 分钟，编码约 40 分钟。分段帧存在 `out/4k120/`，中断后再运行会从未完成的分段继续；想改调色，用 `node scripts/render_4k120.mjs --regrade`，不必重新渲染画面。
+需要 NVIDIA 显卡：Remotion 自带的 `libx265` 只能编 8-bit，`hevc_nvenc` 才能编 10-bit。成片约 670 MB，中间文件约 1.2 GB。在 24 线程的笔记本上，帧渲染约 40 分钟，编码约 40 分钟。分段帧存在 `out/4k120/`，中断后再运行会从未完成的分段继续；想改调色，用 `node scripts/render_4k120.mjs --regrade`，不必重新渲染画面。
 
 几点说明：
 
