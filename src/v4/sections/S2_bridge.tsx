@@ -7,7 +7,7 @@
 //  a spike pierces the border) · ILLEGAL ARGUMENTS (stack trace floods, the
 //  frame shatters, a lone spark is left).
 import React, {useId} from 'react';
-import {AbsoluteFill} from 'remotion';
+import {AbsoluteFill, staticFile} from 'remotion';
 import {beat, clamp01, ease, env, FPS, K, lastOnset, lerp, prog, pulse, useT} from '../../v3/core';
 import {PenHead} from '../../v3/geo';
 import {arcPts, cumLen, RaySpark, Seg, Stroke} from '../../v3/sections/B_util';
@@ -58,6 +58,26 @@ const row = (text: string, sel = false) => (
     </text>
   </g>
 );
+// a small window: title bar (dots + name), then its picture
+const thumb = (title: string, w: number, h: number, body: React.ReactNode) => (
+  <g>
+    <rect x={0.75} y={0.75} width={w - 1.5} height={h - 1.5} rx={8} fill={K.surface} stroke={K.line2} strokeWidth={1.5} />
+    <path d={`M 0 24 L ${w} 24`} stroke={K.line2} strokeWidth={1} />
+    {[0, 1, 2].map((k) => (
+      <circle key={k} cx={12 + 11 * k} cy={12} r={3} fill={k === 0 ? K.orange : 'none'} stroke={k === 0 ? 'none' : K.line2} strokeWidth={1.2} />
+    ))}
+    <text x={w / 2 + 16} y={16.5} textAnchor="middle" fontFamily={CODE} fontSize={12} fill={K.creamDim}>
+      {title}
+    </text>
+    <g transform="translate(0 24)">{body}</g>
+  </g>
+);
+// a crop of a current drawing inside a thumbnail window, a little faded
+const picCrop = (src: string, iw: number, ih: number, viewBox: string, w: number, h: number) => (
+  <svg x={0} y={0} width={w} height={h} viewBox={viewBox} preserveAspectRatio="xMidYMid slice" opacity={0.8}>
+    <image href={staticFile(src)} x={0} y={0} width={iw} height={ih} />
+  </svg>
+);
 const FRAGS: Frag[] = [
   {id: 'new', c: [180, 150], w: 190, h: 36, rot: -7, side: 1, body: <g><path d="M 8 18 L 20 18 M 14 12 L 14 24" stroke={K.creamDim} strokeWidth={1.5} /><text x={34} y={23} fontFamily={CODE} fontSize={15} fill={K.cream} fillOpacity={0.7}>New chat</text></g>},
   {id: 'chorus', c: [175, 252], w: 210, h: 38, rot: 9, side: -1, body: row('chorus', true)},
@@ -73,7 +93,21 @@ const FRAGS: Frag[] = [
   {id: 'clock', c: [1745, 335], w: 160, h: 30, rot: 8, side: 1, body: <text x={10} y={21} fontFamily={CODE} fontSize={17} fill={K.cream} fillOpacity={0.7}>10:00:07 PM</text>},
   {id: 'code', c: [1480, 770], w: 390, h: 34, rot: -3, side: 1, body: <text x={10} y={23} fontFamily={CODE} fontSize={18} xmlSpace="preserve"><tspan fill={K.orange}>return </tspan><tspan fill={K.cream}>you </tspan><tspan fill={K.creamDim}>? </tspan><tspan fill={K.orange} fontWeight={700}>EXISTENCE</tspan><tspan fill={K.creamDim}> : </tspan><tspan fill={K.orange}>null</tspan><tspan fill={K.creamDim}>;</tspan></text>},
   {id: 'monitor', c: [1620, 905], w: 300, h: 70, rot: 5, side: -1, body: <g><path d="M 6 46 L 294 46" stroke={K.cream} strokeOpacity={0.45} strokeWidth={2} /><text x={290} y={28} textAnchor="end" fontFamily={CODE} fontSize={18} fill={K.orange}>signal lost</text></g>},
+  // the traces she left of herself earlier (v4): the plane she was pressed into
+  // (DIMENSION), the strand of outline she tied to you (CIRCUMFERENCE), and the
+  // afterimages of her and him from the switches
+  {id: 'plane', c: [900, 140], w: 360, h: 40, rot: -3, side: 1, body: <g><path d="M 8 20 L 352 20" stroke={K.cream} strokeOpacity={0.45} strokeWidth={1.5} /><text x={12} y={14} fontFamily={CODE} fontSize={14} fill={K.creamDim}>dim = 1</text></g>},
+  {id: 'strand', c: [1130, 860], w: 260, h: 90, rot: 6, side: -1, body: <g><path d="M 6 14 C 60 70, 120 20, 170 60 S 230 80, 246 76" fill="none" stroke={K.orange} strokeWidth={2.5} strokeLinecap="round" /><circle cx={246} cy={76} r={6} fill={K.bg} stroke={K.cream} strokeOpacity={0.45} strokeWidth={1.5} strokeDasharray="3 3" /></g>},
+  // the old forms, each inside a torn piece of the window it lived in (v6:
+  // window fragments, never a loose head or hand). v9: they show what the song
+  // actually showed: the F and M colour-block figures, the smiling cat, the hand.
+  {id: 'herGhost', c: [330, 650], w: 200, h: 324, rot: -6, side: 1, body: thumb('me.ts — her', 200, 324, picCrop('la3x/fm_F_tone.png', 1536, 1024, '590 0 640 960', 200, 300))},
+  {id: 'himGhost', c: [1600, 640], w: 200, h: 324, rot: 6, side: -1, body: thumb('me.ts — him', 200, 324, picCrop('la3x/fm_M_tone.png', 1536, 1024, '590 0 640 960', 200, 300))},
+  {id: 'catGhost', c: [610, 330], w: 200, h: 324, rot: 5, side: 1, body: thumb('cat.ts', 200, 324, picCrop('la3x/cat_smile.png', 1024, 1536, '62 0 900 1350', 200, 300))},
+  {id: 'handGhost', c: [1330, 860], w: 300, h: 193, rot: -5, side: -1, body: thumb('only.you', 300, 193, <image href={staticFile('la/hand_flat.png')} x={0} y={0} width={300} height={169} opacity={0.75} />)},
 ];
+// the old forms are deleted last, after everything else
+const LATE = ['herGhost', 'himGhost', 'catGhost', 'handGhost'];
 // the one that cannot be removed
 const YOU: Frag = {id: 'you', c: [700, 780], w: 70, h: 62, rot: 0, side: 1, body: <g><circle cx={35} cy={17} r={9} fill={K.bg} stroke={K.cream} strokeOpacity={0.45} strokeWidth={2} strokeDasharray="3.5 3.5" /><text x={35} y={50} textAnchor="middle" fontFamily={CODE} fontSize={15} fill={K.cream} fillOpacity={0.7}>you</text></g>};
 
@@ -91,8 +125,8 @@ const jagPoly = (w: number, h: number, side: 1 | -1, seed: number): P2[] => {
 };
 const SCAT_A = L.ific2; // 118.333
 const DEL0 = L.FRAGMENTS; // the rm runs on the keyword
-const ORDER = [...FRAGS].sort((a, b) => a.c[0] - b.c[0]).map((f) => f.id);
-const delAt = (id: string) => DEL0 + Math.floor(ORDER.indexOf(id) / 2) * BEAT16;
+const ORDER = [...FRAGS].filter((f) => !LATE.includes(f.id)).sort((a, b) => a.c[0] - b.c[0]).map((f) => f.id);
+const delAt = (id: string) => (LATE.includes(id) ? DEL0 + (5 + 0.5 * LATE.indexOf(id)) * BEAT16 : DEL0 + Math.floor(ORDER.indexOf(id) / 3) * BEAT16);
 const YOU_RES = DEL0 + 7 * BEAT16; // 121.67: its turn comes, it refuses
 const HEART_C: P2 = [960, 452];
 const HS = 1.25;
@@ -228,6 +262,8 @@ const closeOff = (t: number) => stepped(t, CLOSE_BIG, 30) + stepped(t, CLOSE_SMA
 const SHAT = L.ILLEGAL;
 const SPARK_HANDOFF = 131.22; // S3 draws the lone spark from here
 
+// negative flashes: the closing beats after her reveal has finished (126.5)
+const negOn = (t: number) => t < SHAT && CLOSE_BIG.some((b) => b > 126.5 && t >= b && t < b + 3 / FPS);
 const nCloses = (t: number) => CLOSE_BIG.filter((b) => t >= b).length + 0.5 * CLOSE_SMALL.filter((b) => t >= b).length;
 
 // stack trace that floods upward
@@ -301,6 +337,8 @@ const Standoff: React.FC<{t: number}> = ({t}) => {
         reveal={[L.god + 0.02, 126.5]}
         shatter={{t0: SHAT, cells: 22, seed: 5, dist: 460, dur: 0.6, stagger: 0.012}}
       />
+      {/* on each closing beat she flashes to a negative print for 3 frames: ink lines on cream */}
+      {negOn(t) && <LineArt pose="face_defy" x={fx} y={FACE.y} h={FACE.h} tint={K.ink} underlay={K.charCream} pen={false} />}
       <Win x={wx} y={GOD.y} w={GOD.w} h={GOD.h} title="god — pid 1" tOpen={L.god - 0.08} a={pierced ? 0.5 : 0.28} seed={41} focus shatter={shat} />
       <Layer>
         {/* the broken border segment where the spike went through */}
@@ -363,10 +401,16 @@ export const BridgeS2: React.FC = () => {
         <Heart t={t} />
       </Layer>
       <Fragments t={t} />
-      <KwCode t0={L.ISOLATION} t1={118.18} pre="while (" kw="ISOLATION" post=") {}" x={960} y={520} size={124} a={0} seed={42} />
-      <KwCode t0={L.FRAGMENTS} t1={121.62} pre="rm -rf ./" kw="FRAGMENTS" post="/*" x={960} y={640} size={116} a={0.3} seed={43} />
+      <KwCode t0={L.ISOLATION} t1={L.ific2 - 0.22} pre="while (" kw="ISOLATION" post=") {}" x={960} y={520} size={124} a={0} seed={42} />
+      <KwCode t0={L.FRAGMENTS} t1={L.maybe - 0.22} pre="rm -rf ./" kw="FRAGMENTS" post="/*" x={960} y={640} size={116} a={0.3} seed={43} />
       <KwCode t0={L.DISHEARTENED} t1={125.5} pre="return " kw="DISHEARTENED" post=";" x={960} y={706} size={100} a={0.3} seed={45} />
       <Standoff t={t} />
+      {/* dark knockout plate: from the standoff on, the lyrics sit over her line-art hair */}
+      {t >= L.god - 0.1 && (
+        <svg width={1} height={1} style={{position: 'absolute', left: 0, top: 0, overflow: 'visible', opacity: tranO * prog(t, L.god - 0.1, L.god + 0.1)}}>
+          <rect x={990} y={22} width={900} height={Math.min(286, GOD.y - 12 - 22)} rx={10} fill={K.bg} fillOpacity={0.92} stroke={K.line2} strokeWidth={1.5} />
+        </svg>
+      )}
       {t >= L.ific2 - 0.05 && <Transcript x={1010} y={40} w={860} h={252} entries={BRIDGE_ENTRIES} a={0.35} opacity={tranO} seed={9} />}
     </AbsoluteFill>
   );

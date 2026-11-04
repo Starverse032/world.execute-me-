@@ -3,7 +3,9 @@
 //  - 'CODE4' / 'MATH4': the same JetBrains Mono / STIX italic, subset with the
 //    extra glyphs v4 needs (● › ⚠ ↑ ² ³ − box drawing …). They are listed first
 //    in the stacks below, so always import CODE / MATH from here, not v3/core.
-//  - 'CJK': public/fonts3/CJK.woff2 (only 넷 and 六).
+//  - 'CJK': public/fonts3/CJK.woff2 (only 넷 and 六), sans, for code.
+//  - 'CJKSERIF': Noto Serif SC 六 + Noto Serif KR 넷 (public/fonts5/CJK-SERIF-*.woff2),
+//    for the huge counting words, so they match the Newsreader Ein / Dos / Trois / Fem.
 // Glyphs NOT in any font (draw them as SVG): ✻ (use <Spark>), ⎿ (<Elbow>), ✓ (<Check>).
 import {continueRender, delayRender, staticFile} from 'remotion';
 import '../v3/core';
@@ -12,6 +14,7 @@ export const SERIF = "'SERIF', Georgia, serif";
 export const CODE = "'CODE4', 'CODE', 'DejaVu Sans Mono', monospace";
 export const MATH = "'MATH4', 'MATH', 'DejaVu Serif', serif";
 export const CJK = "'CJK', 'CODE4', sans-serif";
+export const CJK_SERIF = "'CJKSERIF', 'CJK', serif";
 
 // JetBrains Mono advance width is exactly 0.6 em for every glyph, at every weight.
 export const MONO_ADV = 0.6;
@@ -32,6 +35,8 @@ Promise.all(
       ['CODE4', 'fonts4/CODE.woff2', {weight: '100 800'}],
       ['MATH4', 'fonts4/MATH-400i.woff2', {weight: '400', style: 'italic'}],
       ['CJK', 'fonts3/CJK.woff2', {weight: '100 900'}],
+      ['CJKSERIF', 'fonts5/CJK-SERIF-SC.woff2', {weight: '500', unicodeRange: 'U+516D'}],
+      ['CJKSERIF', 'fonts5/CJK-SERIF-KR.woff2', {weight: '500', unicodeRange: 'U+B137'}],
     ] as [string, string, FontFaceDescriptors][]
   ).map(([family, file, desc]) => {
     const face = new FontFace(family, `url(${staticFile(file)}) format('woff2')`, desc);

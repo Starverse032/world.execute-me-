@@ -1,11 +1,15 @@
 # Chinese .srt for the whole song from docs/lyrics.lrc + docs/lyrics_zh.json.
 # An ALL-CAPS LRC line is a keyword: it is appended to the preceding lead-in
-# from its own timestamp. Lines end when the next line starts (max 4 s).
-# usage: python3 scripts/make_srt_full.py <out.srt> [end_seconds]
+# from its own timestamp. A keyword whose translation is "" is already part of
+# the lead-in, so the lead-in cue just runs on through it.
+# Lines end when the next line starts (max 4 s).
+# usage: python3 scripts/make_srt_full.py <out.srt> [end_seconds] [offset_seconds]
+#   offset_seconds shifts every cue, e.g. 3 for the Release cut's notice card.
 import json, re, sys, pathlib
 root = pathlib.Path(__file__).resolve().parent.parent
 zh = json.loads((root / 'docs' / 'lyrics_zh.json').read_text(encoding='utf-8'))
 end_at = float(sys.argv[2]) if len(sys.argv) > 2 else 1e9
+offset = float(sys.argv[3]) if len(sys.argv) > 3 else 0.0
 rows = []
 for line in (root / 'docs' / 'lyrics.lrc').read_text(encoding='utf-8').splitlines():
     m = re.match(r'\[(\d+):(\d+\.\d+)\](.*)', line)
@@ -19,7 +23,10 @@ for line in (root / 'docs' / 'lyrics.lrc').read_text(encoding='utf-8').splitline
 cues = []
 for i, (t, en, z, kw) in enumerate(rows):
     nxt = rows[i + 1][0] if i + 1 < len(rows) else t + 4
-    if kw and cues and cues[-1][3] == 'lead' and abs(cues[-1][1] - t) < 0.05:
+    if kw and z == '' and cues:
+        s, _, text, kind = cues[-1]
+        cues[-1] = (s, min(nxt, t + 4), text, kind)
+    elif kw and cues and cues[-1][3] == 'lead' and abs(cues[-1][1] - t) < 0.05:
         cues.append((t, min(nxt, t + 4), f'{cues[-1][2]} {z}', 'kw'))
     else:
         cues.append((t, min(nxt, t + 4), z, 'kw' if kw else 'lead'))
@@ -27,6 +34,6 @@ def ts(x):
     ms = round(x * 1000)
     return f'{ms // 3600000:02d}:{ms // 60000 % 60:02d}:{ms // 1000 % 60:02d},{ms % 1000:03d}'
 cues = [c for c in cues if c[0] < end_at]
-out = '\n'.join(f'{i}\n{ts(s)} --> {ts(min(e, end_at))}\n{text}\n' for i, (s, e, text, _) in enumerate(cues, 1))
+out = '\n'.join(f'{i}\n{ts(s + offset)} --> {ts(min(e, end_at) + offset)}\n{text}\n' for i, (s, e, text, _) in enumerate(cues, 1))
 pathlib.Path(sys.argv[1]).write_text(out, encoding='utf-8')
 print(len(cues), 'cues')

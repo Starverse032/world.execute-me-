@@ -239,6 +239,8 @@ const ParamsBody: React.FC<{t: number}> = ({t}) => {
       })}
       {/* colour decorator after the hair value, like an editor's swatch */}
       {hairDone && <rect x={PW_TXT.x + PW_ROWS[1].length * cw + 12} y={n2(PW_TXT.y + lh + 9)} width={14} height={14} rx={2} fill={K.orange} />}
+      {/* v4: the one value left empty is marked, so it is noticed (it pays off at COMPLETION and in the love section) */}
+      {t >= PW_FIELDS[4].t + PW_TYPE && <rect x={n2(PW_TXT.x + 11 * cw - 6)} y={n2(PW_TXT.y + 5 * lh + 3)} width={n2(4 * cw + 12)} height={n2(lh - 6)} rx={4} fill="none" stroke={K.orange} strokeWidth={2} opacity={prog(t, PW_FIELDS[4].t + PW_TYPE, PW_FIELDS[4].t + PW_TYPE + 0.15)} />}
       {/* the 12-cell init bar, filling on 16ths and completing on the hit */}
       <text x={24} y={PW_BAR.y + 12} fontFamily={CODE} fontSize={15} fill={K.creamDim}>
         init

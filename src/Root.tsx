@@ -13,6 +13,8 @@ export const FPS = 30;
 export const RemotionRoot: React.FC = () => (
   <>
   <Composition id="Release" component={Release} durationInFrames={RELEASE_FRAMES} fps={FPS} width={1920} height={1080} />
+  {/* the final master: rendered at --scale=2 (3840×2160) by scripts/render_4k120.mjs */}
+  <Composition id="Release120" component={Release} durationInFrames={RELEASE_FRAMES * 4} fps={120} width={1920} height={1080} />
   <Composition id="FullMV2" component={FullMV2} durationInFrames={FRAMES_V4} fps={FPS} width={1920} height={1080} />
   <Composition id="IntroCard" component={IntroCard} durationInFrames={INTRO_FRAMES} fps={FPS} width={1920} height={1080} />
   <Composition id="OutroCard" component={OutroCard} durationInFrames={OUTRO_FRAMES} fps={FPS} width={1920} height={1080} />

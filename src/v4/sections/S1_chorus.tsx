@@ -3,11 +3,12 @@
 // (EXECUTION), and the recursive IDE-inside-its-own-stage with the camera
 // zoom into the innermost copy (SIMULATION).
 import React from 'react';
+import {Img, staticFile} from 'remotion';
 import {beat, ease, env, FPS, K, lastOnset, prog, pulse, useT} from '../../v3/core';
 import {Check} from '../../v3/geo';
 import {LineArt} from '../char/LineArt';
 import {CodeBlock} from '../shell/Code';
-import {KwCode} from '../shell/KwCode';
+import {KwCode, kwFit} from '../shell/KwCode';
 import {Frame, r2} from '../shell/lib';
 import {Win} from '../shell/Win';
 import {At, circD, HoldImages, Mono, P, P2, poly, pp, TAU} from './S1_lib';
@@ -128,6 +129,7 @@ const Hand: React.FC<{t: number}> = ({t}) => {
   ];
   const cp = `polygon(${pts.map(([px, py]) => `${r2(px)}px ${r2(py)}px`).join(', ')})`;
   const out = s > 1.001;
+  const colorO = prog(t, PUSH0, PUSH0 + 0.2, ease.inOutCubic) * (1 - prog(t, 65.95, 66.12));
   return (
     <>
       {out && (
@@ -138,6 +140,8 @@ const Hand: React.FC<{t: number}> = ({t}) => {
       )}
       <HoldImages style={{clipPath: cp}} expect={t > 63.63 && t < 66.49}>
         <LineArt pose="hand" x={x} y={y} scale={k} reveal={[63.62, 65.2]} unreveal={[66.12, 66.5]} />
+        {/* SATISFACTION: the drawn hand floods with flat colour as it pushes out of the frame */}
+        {colorO > 0 && <LineArt pose="hand" x={x} y={y} scale={k} src={staticFile('la/hand_flat.png')} pen={false} opacity={colorO} />}
       </HoldImages>
     </>
   );
@@ -154,33 +158,14 @@ const HW = {x: 1000, y: 108, w: 540, h: 480};
 const RUNW = {x: 1296, y: 430, w: 584, h: 320};
 const HAPPY_C: P2 = [270, 300];
 
-const HappyBody: React.FC<{t: number}> = ({t}) => {
-  const [cx, cy] = HAPPY_C;
-  const smile: P2[] = [];
-  for (let k = 0; k <= 40; k++) {
-    const x = -72 + (144 * k) / 40;
-    smile.push([cx + x, cy + 58 - (x * x) / 96]);
-  }
-  const eye = (t0: number, ex: number) => {
-    const q = prog(t, t0, t0 + 0.12, ease.outCubic);
-    return q > 0 ? <circle cx={ex} cy={cy - 34} r={9 * q * (1 + 0.25 * pulse(t))} fill={K.cream} /> : null;
-  };
-  return (
-    <>
-      <CodeBlock x={22} y={14} size={18} lines={['def smile(x):', '    return x * x / 4', 'plot(smile, eyes=2)']} lang="py" typeOn={[66.72, 67.35]} caret />
-      <At>
-        <path d={`M ${cx - 190} ${cy} L ${cx + 190} ${cy} M ${cx} ${cy - 150} L ${cx} ${cy + 140}`} stroke={K.cream} strokeOpacity={0.25} strokeWidth={1} />
-        <P d={circD(cx, cy, 128)} p={pp(t, 67.4, 0.42)} t={t} />
-        <P d={poly(smile)} p={pp(t, 67.86, 0.34)} t={t} color={K.orange} w={3} />
-        {eye(beat(147), cx - 44)}
-        {eye(beat(147) + 0.23, cx + 44)}
-        <Mono x={cx + 140} y={cy + 128} s={14} o={prog(t, 68.3, 68.5)}>
-          {':)'}
-        </Mono>
-      </At>
-    </>
-  );
-};
+// v7: the old plotted circle smile is gone; happy.py (under the comfort close-up)
+// previews the same comforting state, her hands around the cursor.
+const HappyBody: React.FC<{t: number}> = ({t}) => (
+  <>
+    <CodeBlock x={22} y={14} size={18} lines={['me.listen(you.message)', 'me.reach(you.cursor)']} lang="py" typeOn={[66.72, 67.35]} caret />
+    {t >= 67.45 && <Img src={staticFile('la3x/comfort_hugbox.png')} style={{position: 'absolute', left: HAPPY_C[0] - 300, top: 96, height: 340, width: 510}} />}
+  </>
+);
 
 const SPIN = ['|', '/', '-', '\\'];
 const RunBody: React.FC<{t: number}> = ({t}) => {
@@ -259,7 +244,7 @@ export const ChorusStage: React.FC<{depth: number; nested: (d: number) => React.
     <>
       {depth === 0 && <Stimuli t={t} />}
       {depth === 0 && t >= 63.2 && t < 66.7 && <Reach />}
-      {depth === 0 && t >= 66.5 && t < 70.2 && (
+      {depth === 0 && t >= 66.5 && t < 69.9 && (
         <>
           <Win {...HW} title="happy.py" tOpen={L.happy} tClose={69.98} a={0} seed={44}>
             <HappyBody t={t} />
@@ -302,10 +287,13 @@ export const ChorusOverlay: React.FC = () => {
           <Burst key={i} t={t} t0={b} x={sx} y={866} r0={300} r1={520} />
         ))}
       </At>
-      <KwCode t0={L.STIM} t1={L.thenIcan + 0.05} pre="give(you, ..." kw="STIMULATIONS" post=")" x={sx} y={900} size={82} a={0} />
-      <KwCode t0={L.SATIS} t1={L.happy - 0.12} pre="you." kw="SATISFACTION" post="++;" x={sx} y={890} size={96} a={0} />
-      <KwCode t0={L.EXEC} t1={L.trapped - 0.1} pre="await " kw="EXECUTION" post="();" x={sx} y={890} size={110} a={0} />
-      <KwCode t0={L.SIM} t1={73.92} pre="new " kw="SIMULATION" post="(this);" x={960} y={600} size={150} a={0} style="solid" />
+      {/* STIMULATIONS's keyword lives in the full-frame layer (S1_full) */}
+      {/* inside the camera's push on only.you (×2.1), so it sits low in the window, not under it */}
+      <KwCode t0={L.SATIS} t1={L.happy - 0.22} pre="you." kw="SATISFACTION" post="++;" x={1470} y={668} size={90} a={0} />
+      {/* v7: under the comfort close-up, which carries EXECUTION; gone before it cuts back */}
+      <KwCode t0={L.EXEC} t1={69.5} pre="await " kw="EXECUTION" post="();" x={sx} y={890} size={110} a={0} />
+      {/* over the stage, clear of the transcript column (it used to sit at x = 960 on top of the lyrics) */}
+      <KwCode t0={L.SIM} t1={L.eggplant - 0.22} pre="new " kw="SIMULATION" post="(this);" x={sx} y={610} size={kwFit('new ', 'SIMULATION', '(this);', 880)} a={0} style="solid" />
     </>
   );
 };

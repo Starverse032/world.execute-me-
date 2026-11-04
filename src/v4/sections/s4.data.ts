@@ -150,9 +150,11 @@ export const arriveAt = (k: number) => (k === 0 ? 191.55 : D[k] - 0.92);
 export const FINAL: P2 = [960, 540];
 export const T_COLLAPSE: [number, number] = [206.55, 207.05];
 export const T_EXIT0 = 207.15;
-export const T_WORKED = 208.1;
-export const T_TEXT_FADE: [number, number] = [210.0, 210.5];
-export const T_DOT_FADE: [number, number] = [210.4, 211.0];
+export const T_WORKED = 207.95;
+// v4: the call and exit 0 step back; "Worked for 3m 31s" and the empty end of
+// the tether stay to the last frame
+export const T_TEXT_FADE: [number, number] = [209.4, 209.8];
+export const T_DOT_FADE: [number, number] = [211.55, 211.95];
 
 // the targeted component glitches during the bar before it is deleted
 export const targetA = (k: number, t: number, base = 0) => (t > D[k] + 0.2 ? base : Math.max(base, 0.62 * prog(t, D[k] - 1.75, D[k] - 0.05, ease.inQuad)));
@@ -170,9 +172,11 @@ export const OUTRO_VERBS: Verb[] = [
 export const OUTRO_PROMPTS: Prompt[] = [
   ...LOVE_PROMPTS,
   {t0: 198.75, text: 'rm status', send: D[4] - 0.08, by: 'claude'},
-  {t0: 200.55, text: 'rm composer', send: D[5] - 0.08, by: 'claude'},
+  // v5: the one unfinished input, given time to be read: it stops part way and is never sent
+  {t0: 200.2, text: 'rm compo', send: 1e9, by: 'claude'},
 ];
-export const composerState = (t: number): ComposerState => (t < LY.free ? 'normal' : t < D[3] + 0.3 ? 'disabled' : 'claude');
+// v5: the questions come through a composer that stays offline-styled (you are not back)
+export const composerState = (t: number): ComposerState => (t < D[3] + 0.3 ? 'disabled' : 'claude');
 
 // transcript: the love conversation (lives on into the outro until it is deleted)
 const LOVES = [LY.love2, 183.86, 184.02, 184.14, 184.24, 184.32, 184.39];

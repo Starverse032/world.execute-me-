@@ -133,7 +133,7 @@ export const IDE_ENTRIES: Entry[] = [
   {kind: 'tool', t: T.test, text: 'Bash(npm test)', res: '42 passed', rt: T.glob - 0.001},
   {kind: 'tool', t: T.glob, text: 'Glob(**/*.ts)', res: '3 files', rt: beat(57)},
   {kind: 'tool', t: beat(58), text: 'Grep("me", world/)', res: '0 matches', rt: beat(59)},
-  {kind: 'tool', t: T.readMe, text: 'Read(me.ts)', res: 'file not found', rt: beat(61)},
+  {kind: 'tool', t: T.readMe, text: 'Read(me.ts)', res: 'file not found', rt: beat(61), tone: 'orange'},
   {kind: 'user', t: T.ask, text: 'describe yourself. in math.'},
   // verse 1
   {kind: 'say', t: 29.709, text: 'If I’m a set of points'},

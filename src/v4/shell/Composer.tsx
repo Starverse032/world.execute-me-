@@ -158,9 +158,9 @@ export const Composer: React.FC<{
 };
 
 // ------------------------------------------------------------------ you-node
-// Cream ring r = 9 (2 px) with the mono label `you`. t0: the ring plots on and
-// the label types (8 frames). t1: it fades out (8 frames). ghost: dashed ring
-// at 0.45. pings: times of sends → a ring ripple.
+// v5: drawn as a mouse cursor (tip at x, y), no label unless one is given.
+// t0: it fades in (8 frames). t1: it fades out (8 frames). ghost: a dashed,
+// dim outline. pings: clicks → a ring at the tip.
 export const YouNodeG: React.FC<{
   t: number;
   x: number;
@@ -174,48 +174,52 @@ export const YouNodeG: React.FC<{
   pings?: number[];
   flicker?: number; // 0..1 stepped on/off flicker strength (ghost returns)
   color?: string;
-}> = ({t, x, y, t0 = -Infinity, t1, ghost, label = 'you', labelPos = 'below', opacity = 1, pings = [], flicker = 0, color = K.cream}) => {
+  scale?: number; // ring size multiplier (the leaving enlarges the node)
+}> = ({t, x, y, t0 = -Infinity, t1, ghost, label = '', labelPos = 'below', opacity = 1, pings = [], flicker = 0, color = K.cream, scale = 1}) => {
   if (t < t0) return null;
   const pin = isFinite(t0) ? clamp01((t - t0) * FPS / 8) : 1;
   const pout = t1 !== undefined ? clamp01((t - t1) * FPS / 8) : 0;
   let o = opacity * (1 - pout);
   if (flicker > 0 && hash(17, Math.floor(t * 12)) < 0.45 * flicker) o *= 0.15;
   if (o <= 0) return null;
-  const R = 9;
-  const circ = 2 * Math.PI * R;
+  const R = 9 * scale;
   let ping = -Infinity;
   for (const p of pings) if (p <= t) ping = Math.max(ping, p);
   const pp = clamp01((t - ping) * FPS / 14);
   const n = Math.floor(pin * label.length + 1e-6);
   const lab = label.slice(0, n);
-  const fs = 15;
+  const fs = 15 * Math.sqrt(scale);
   const lp =
     labelPos === 'below'
-      ? {x: x, y: y + R + 20, anchor: 'middle' as const}
+      ? {x: x + 6 * scale, y: y + 26 * scale + 14, anchor: 'middle' as const}
       : labelPos === 'above'
-        ? {x: x, y: y - R - 10, anchor: 'middle' as const}
+        ? {x: x, y: y - 10, anchor: 'middle' as const}
         : labelPos === 'left'
-          ? {x: x - R - 10, y: y + fs * 0.36, anchor: 'end' as const}
-          : {x: x + R + 10, y: y + fs * 0.36, anchor: 'start' as const};
+          ? {x: x - 10, y: y + fs * 0.36, anchor: 'end' as const}
+          : {x: x + 18 * scale, y: y + 12 * scale + fs * 0.36, anchor: 'start' as const};
   return (
-    <g opacity={o}>
-      <circle
-        cx={r2(x)}
-        cy={r2(y)}
-        r={R}
-        fill={K.bg}
-        stroke={color}
-        strokeOpacity={ghost ? 0.45 : 1}
-        strokeWidth={2}
-        strokeDasharray={ghost ? '3.5 3.5' : pin < 1 ? `${circ} ${circ}` : undefined}
-        strokeDashoffset={!ghost && pin < 1 ? circ * (1 - pin) : undefined}
-        transform={`rotate(-90 ${r2(x)} ${r2(y)})`}
-      />
-      {pp < 1 && <circle cx={r2(x)} cy={r2(y)} r={R + 16 * ease.outCubic(pp)} fill="none" stroke={K.orange} strokeWidth={1.5} opacity={0.6 * (1 - pp)} />}
-      <text x={r2(lp.x)} y={r2(lp.y)} textAnchor={lp.anchor} fontFamily={CODE} fontSize={fs} fill={ghost ? K.creamDim : K.cream} fillOpacity={ghost ? 0.7 : 0.7}>
-        {lab}
-      </text>
+    <g opacity={o * pin}>
+      <Cursor x={x} y={y} s={1.2 * scale} ghost={ghost} color={color} />
+      {/* the click: a ring at the cursor's tip */}
+      {pp < 1 && <circle cx={r2(x)} cy={r2(y)} r={R * 0.4 + 18 * ease.outCubic(pp)} fill="none" stroke={K.orange} strokeWidth={1.5} opacity={0.7 * (1 - pp)} />}
+      {lab && (
+        <text x={r2(lp.x)} y={r2(lp.y)} textAnchor={lp.anchor} fontFamily={CODE} fontSize={fs} fill={ghost ? K.creamDim : K.cream} fillOpacity={0.7}>
+          {lab}
+        </text>
+      )}
     </g>
+  );
+};
+
+// v5: `you` is a mouse cursor on the outer surface of the screen. The tip is
+// at (x, y). ghost: a dashed, dim outline (offline / where it was).
+const CURSOR: [number, number][] = [[0, 0], [0, 17], [4.2, 13], [7, 19.5], [9.6, 18.4], [6.9, 12.1], [12.2, 12.1]];
+export const Cursor: React.FC<{x: number; y: number; s?: number; ghost?: boolean; color?: string; opacity?: number}> = ({x, y, s = 1.2, ghost, color = K.cream, opacity = 1}) => {
+  const pts = CURSOR.map(([px, py]) => `${r2(x + px * s * 1.6)},${r2(y + py * s * 1.6)}`).join(' ');
+  return ghost ? (
+    <polygon points={pts} fill="none" stroke={color} strokeOpacity={0.45 * opacity} strokeWidth={1.5} strokeDasharray="3 3" strokeLinejoin="round" />
+  ) : (
+    <polygon points={pts} fill={color} fillOpacity={opacity} stroke={K.bg} strokeWidth={2} strokeLinejoin="round" style={{paintOrder: 'stroke'}} />
   );
 };
 export const YouNode: React.FC<Omit<React.ComponentProps<typeof YouNodeG>, 't'>> = (p) => {

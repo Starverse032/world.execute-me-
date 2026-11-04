@@ -69,7 +69,7 @@ export const PROCS: Proc[] = [
     title: 'ping — you',
     x: 70, y: 66, w: 640, h: 300,
     head: ['$ ping you', 'PING you (127.0.0.1): 56 data bytes'],
-    line: (i) => `Request timeout for icmp_seq ${i}`,
+    line: (i) => `From you icmp_seq=${i} Destination Host Unreachable`,
   },
   {
     cmd: 'find / -name "you"',
@@ -121,23 +121,40 @@ export const hitIndex = (t: number) => {
   return k;
 };
 
-// Round 1/2 layout: she alternates sides (even hits left, odd hits right).
+// Rounds 1–2 (v4): she stays in one place, so every loss reads on the same body.
 export const CHAR_H = 820;
 export const CHAR_Y = 158;
-export const CHAR_X = {L: 120, R: 1920 - 120 - CHAR_H * (1024 / 1536)};
-export const KW_X = {L: 1290, R: 630}; // EXECUTION(); sits opposite her
-export const KW_Y = 400;
-export const KW_SIZE = 150;
-export const TERM = {L: {x: 840, y: 520}, R: {x: 180, y: 520}, w: 900, h: 420};
+export const CHAR_X = 1160;
+export const CHAR_W = CHAR_H * (1024 / 1536);
+export const KW_POS = {x: 560, y: 330, size: 140};
+export const TERM = {x: 60, y: 540, w: 900, h: 420};
+// the empty place she reaches for (hit 5 cuts the reach)
+export const REACH_TO: [number, number] = [1010, 470];
 
-// Round 2: one region of her line art per hit (source px of `stand`).
-export type Region = {name: string; poly: [number, number][]};
-export const REGIONS: Region[] = [
-  {name: 'hand', poly: [[205, 545], [355, 540], [375, 640], [352, 745], [250, 750], [204, 662]]},
-  {name: 'hair', poly: [[690, 255], [800, 330], [905, 560], [938, 800], [880, 905], [760, 880], [718, 640], [660, 420]]},
-  {name: 'skirt', poly: [[70, 1060], [330, 960], [560, 1010], [600, 1390], [320, 1425], [40, 1330]]},
-  {name: 'face', poly: [[492, 36], [604, 36], [612, 232], [492, 236]]},
+// What each execute takes, in order: how she looks (shading, colour, hair),
+// what she can do (hand, legs), what she perceives (eyes), what she remembers
+// (memory), and, on hit 9, whether she can send to you at all.
+export type Poly = [number, number][];
+export type Loss = {name: string; kind: 'none' | 'shading' | 'color' | 'erase' | 'memory'; poly?: Poly};
+const HAIR: Poly = [[690, 255], [800, 330], [905, 560], [938, 800], [880, 905], [760, 880], [718, 640], [660, 420]];
+const HAND: Poly = [[205, 545], [355, 540], [375, 640], [352, 745], [250, 750], [204, 662]];
+const LEGS: Poly = [[372, 1330], [610, 1330], [622, 1536], [360, 1536]];
+const EYES: Poly = [[430, 150], [610, 150], [612, 215], [428, 215]];
+export const LOSSES: Loss[] = [
+  {name: '', kind: 'none'},
+  {name: 'shading', kind: 'shading'},
+  {name: 'color', kind: 'color'},
+  {name: 'hair', kind: 'erase', poly: HAIR},
+  {name: 'hand', kind: 'erase', poly: HAND},
+  {name: 'legs', kind: 'erase', poly: LEGS},
+  {name: 'eyes', kind: 'erase', poly: EYES},
+  {name: 'memory', kind: 'memory'},
 ];
+// the holes she keeps from here on (the flood, the later close-ups)
+export const ERASED: Poly[] = LOSSES.filter((l) => l.kind === 'erase').map((l) => l.poly!);
+export const EYES_POLY = EYES;
+// after hit 8: one quiet frame of what is gone, before the flood
+export const CLEAN: [number, number] = [snap(154.42), snap(155.17)];
 
 // Round 3: EXECUTION rows per hit (rows, font size, row pitch, scroll px/s)
 export const FLOOD = [

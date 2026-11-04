@@ -11,17 +11,20 @@
 //   188.48 you float up and away, free. The heart opens like an iris around `sit`.
 //   189.75 "I am trapped": the heart's stroke thickens into a double cage line.
 //   190.80 "Trapped in": the whole IDE slams back in around her (S4_outro).
-// Outro (stage side): on the deletion downbeats she un-plots back into geometry:
-// ink → silhouette (D2) → circle / triangle / square (D3) → the heart dissolves to
-// dots (D4) → the pieces line up as at boot (D5) → pieces to dots (D6) → the window
-// goes (D7) → every dot is pulled into the one orange dot (D8).
+// Outro (stage side, v4, two stages fewer): on the deletion downbeats she
+// un-plots back into geometry: her colour fails (by D1) → ink → circle /
+// triangle / square (D3) → the heart dissolves to dots (D4) → the pieces line
+// up as at boot (D5) and go out (D6) → the window goes (D7) → the dots are
+// pulled into the one orange dot (D8).
 import React from 'react';
+import {staticFile} from 'remotion';
 import {ease, env, FPS, K, lastOnset, lerp, prog, useT} from '../../v3/core';
+import {hash} from '../chaos';
 import {LineArt} from '../char/LineArt';
 import {CODE, MATH} from '../fonts';
 import {CodeBlock} from '../shell/Code';
 import {Collapse} from '../shell/Collapse';
-import {Composer, Tether, YouNode} from '../shell/Composer';
+import {Composer, Tether, YouNode, YouNodeG} from '../shell/Composer';
 import {Layer, r2, textW, useFonts} from '../shell/lib';
 import {Transcript} from '../shell/Transcript';
 import {Win} from '../shell/Win';
@@ -48,7 +51,7 @@ import {
   txH,
   YOU,
 } from './s4.data';
-import {Caption, circlePts, dPoly, HeartGeo, heartPts, lerpPts, loveChunks, polyClosed, rotPts, samplePoly, StretchKw, Stroke} from './S4_lib';
+import {Caption, circlePts, dPoly, HeartGeo, heartPts, lerpPts, loveChunks, LYRIC, polyClosed, rotPts, samplePoly, StretchKw, Stroke} from './S4_lib';
 
 // ------------------------------------------------------------------ man page
 const MAN = [
@@ -106,6 +109,23 @@ const heartbeat = (t: number) => {
 
 // ------------------------------------------------------------------ her (sit) and her geometry
 const SIT = {x: 1438 - (512 * 590) / 1536, y: 205, h: 590};
+const SIT_COLOR = staticFile('la/sit_color.png');
+// v5: what execute took stays gone in this pose too, as irregular holes with
+// broken edges (no flat black bars): eyes (7), hair (4), hand (5), legs (6).
+// Source px of `sit`.
+// each eye its own small, broken-edged hole (no band across the face)
+// v6: moved down onto the eyes themselves (they sat on the fringe before)
+const SIT_EYES: P2[] = [[410, 318], [440, 308], [472, 316], [474, 336], [444, 344], [412, 338]];
+const SIT_EYE2: P2[] = [[504, 288], [526, 278], [550, 284], [552, 302], [530, 310], [506, 304]];
+const SIT_LOST: P2[][] = [
+  SIT_EYES,
+  SIT_EYE2,
+  [[190, 370], [300, 330], [352, 560], [340, 980], [250, 1150], [176, 910], [210, 640]],
+  [[402, 604], [470, 584], [542, 612], [602, 598], [640, 652], [598, 724], [522, 732], [442, 712], [398, 668]],
+  [[382, 1302], [520, 1284], [660, 1296], [674, 1478], [520, 1500], [372, 1486]],
+];
+// the profile's eye (source px of `profile`)
+export const PROFILE_EYE: P2[] = [[800, 312], [850, 298], [920, 316], [938, 356], [882, 378], [816, 370]];
 const SK = 590 / 1536;
 const sm = (sx: number, sy: number): P2 => [SIT.x + sx * SK, SIT.y + sy * SK];
 const HEAD = {c: sm(492, 322), r: 50};
@@ -143,6 +163,7 @@ const HEART_DOTS: DotP[] = samplePoly(BIG_PTS, 84).map((p, i) => ({
   seed: i,
   orange: true,
 }));
+// v5: the pieces go back to points at the very end, as at the start
 const PIECE_DOTS: DotP[] = PIECES.flatMap((pc, k) =>
   samplePoly(pc.row, 30).map((p, i) => ({p, t0: D[5] + k * 0.08 + (i / 30) * 0.15, v: [(hashF(i + 100 * k, 3) - 0.5) * 18, (hashF(i + 100 * k, 4) - 0.5) * 18], seed: 300 + k * 40 + i, orange: false})),
 );
@@ -183,20 +204,26 @@ const HeartLayer: React.FC<{t: number}> = ({t}) => {
   w = lerp(w, 5, cageP);
   const s = heartbeat(t);
   const innerP = prog(t, LY.amTrapped, LY.amTrapped + 10 / FPS, ease.inOutCubic);
-  // her: ink (reveal, clipped to the heart) → silhouette (D2) → gone (D3)
-  const inkO = 1 - prog(t, D[1], D[1] + 0.4);
-  const silO = prog(t, D[1], D[1] + 0.4) * (1 - prog(t, D[2] + 0.45, D[2] + 0.85));
+  // her (v4): ink (reveal, clipped to the heart), still without her eyes (taken at
+  // execute 7) → colour comes back on "I am trapped" but cannot hold: it drops
+  // out in ever longer gaps and is gone by D1 → ink → the pieces (D2) → gone.
+  const inkO = 1 - prog(t, D[2], D[2] + 0.4);
+  const colorBase = prog(t, LY.amTrapped, LY.amTrapped + 0.25, ease.inOutCubic) * (1 - prog(t, D[0] + 0.9, D[1] - 0.1, ease.inOutCubic));
+  const drop = hash(91, Math.floor(t * 12)) < 0.12 + 0.6 * prog(t, LY.trappedIn, D[1] - 0.1);
+  const colorO = drop ? 0.12 * colorBase : colorBase;
   const clipD = t >= T_GROW[1] ? BIG_D : dPoly(pts, true);
-  const herOn = t >= T_SIT[0] && t < D[2] + 0.9;
+  const herOn = t >= T_SIT[0] && t < D[2] + 0.5;
+  const eyes = SIT_LOST.map((poly) => ({t: T_SIT[0], poly, dur: 1 / FPS}));
   return (
     <div style={{position: 'absolute', inset: 0, transform: s !== 1 ? `scale(${r2(s * 10000) / 10000})` : undefined, transformOrigin: `${HC[0]}px ${HC[1]}px`}}>
       {herOn && (
         <div style={{position: 'absolute', inset: 0, clipPath: `path('${clipD}')`}}>
-          {inkO > 0 && <LineArt pose="sit" x={SIT.x} y={SIT.y} h={SIT.h} reveal={T_SIT} inkOpacity={inkO} />}
-          {silO > 0 && <LineArt pose="sit" x={SIT.x} y={SIT.y} h={SIT.h} mode="sil" silFill="ink" opacity={silO} />}
+          {inkO > 0 && <LineArt pose="sit" x={SIT.x} y={SIT.y} h={SIT.h} reveal={T_SIT} inkOpacity={inkO} erase={eyes} />}
+          {colorO > 0 && <LineArt pose="sit" x={SIT.x} y={SIT.y} h={SIT.h} src={SIT_COLOR} pen={false} opacity={colorO} erase={eyes} />}
         </div>
       )}
       <Layer>
+        {herOn && <LostMarks t={t} o={Math.max(inkO * prog(t, T_SIT[1] - 0.4, T_SIT[1]), colorO)} />}
         <g>
           {dissolve < 1 && (
             <g opacity={1 - dissolve}>
@@ -210,6 +237,28 @@ const HeartLayer: React.FC<{t: number}> = ({t}) => {
     </div>
   );
 };
+
+// v6: the holes read as deleted selections, not black blocks: a faint dot grid
+// (what shows through) inside a marching orange dashed edge
+const LostMarks: React.FC<{t: number; o: number}> = ({t, o}) =>
+  o > 0.01 ? (
+    <g opacity={o}>
+      <defs>
+        <pattern id="s4lost" width={9} height={9} patternUnits="userSpaceOnUse">
+          <circle cx={4.5} cy={4.5} r={1.1} fill={K.cream} fillOpacity={0.4} />
+        </pattern>
+      </defs>
+      {SIT_LOST.map((poly, i) => {
+        const d = dPoly(poly.map(([x, y]) => sm(x, y)), true);
+        return (
+          <g key={i}>
+            <path d={d} fill="url(#s4lost)" />
+            <path d={d} fill="none" stroke={K.orange} strokeOpacity={0.85} strokeWidth={1.5} strokeDasharray={i < 2 ? undefined : '5 4'} strokeDashoffset={r2(-t * 18)} strokeLinejoin="round" />
+          </g>
+        );
+      })}
+    </g>
+  ) : null;
 
 // circle / triangle / square: plotted on her (D3), lined up as at boot (D5), to dots (D6)
 const Pieces: React.FC<{t: number}> = ({t}) => {
@@ -330,23 +379,43 @@ const StageWin: React.FC<{t: number}> = ({t}) => {
 };
 
 // ------------------------------------------------------------------ the person (you) leaves, free
+// v5: the cursor never comes back. During the questions it stays a dim dashed
+// outline (offline); on "Though you are free" it moves on the outer surface,
+// outside every frame, along the left margin and off the top, never inside a
+// window. On "I am trapped" she reaches after it and stops at the heart's edge.
 const FREE: [number, number] = [LY.free, 190.75];
 const youFree = (t: number): P2 => {
   const p = prog(t, FREE[0], FREE[1], ease.inQuad);
-  return [lerp(YOU[0], 150, p) + 26 * Math.sin(p * 9), lerp(YOU[1], -60, p)];
+  return [lerp(40, 70, p) + 14 * Math.sin(p * 7), lerp(1000, -80, p)];
 };
 const You: React.FC<{t: number}> = ({t}) => {
   if (t < LY.question || t > FREE[1] + 0.1) return null;
-  if (t < LY.free) {
-    const solid = t >= 180.95 && t < 182.8;
-    return <YouNode x={YOU[0]} y={YOU[1]} t0={LY.question} ghost={!solid} flicker={solid ? 0 : 0.4} pings={[181.2, 182.4]} labelPos="below" />;
-  }
+  if (t < LY.free) return <YouNode x={YOU[0]} y={YOU[1]} t0={LY.question} ghost scale={1.3} />;
   const [x, y] = youFree(t);
+  const trail = Array.from({length: 12}, (_, i) => youFree(t - i * 0.06));
   return (
-    <>
-      <Tether from={[x, y]} to={[COMPOSER.x, COMPOSER.y + 32]} t0={LY.free - 0.01} cuts={[{t: 188.95, u: 0.45, retract: true}]} dash="4 5" />
-      <YouNode x={x} y={y} labelPos="right" />
-    </>
+    <svg width={1} height={1} style={{position: 'absolute', left: 0, top: 0, overflow: 'visible'}}>
+      <path d={trail.map((q, i) => `${i ? 'L' : 'M'} ${r2(q[0])} ${r2(q[1])}`).join(' ')} fill="none" stroke={K.cream} strokeOpacity={0.3} strokeWidth={1.5} strokeDasharray="4 6" />
+      <YouNodeG t={t} x={x} y={y} ghost scale={1.3} />
+    </svg>
+  );
+};
+void Tether;
+// "I am trapped": her reach toward where the cursor went stops at the heart's edge, which lights up
+const HEART_WALL = BIG_PTS.reduce((m, q) => (q[0] < m[0] ? q : m), BIG_PTS[0]);
+const Trapped: React.FC<{t: number}> = ({t}) => {
+  if (t < LY.amTrapped - 0.05 || t > D[0]) return null;
+  const from: P2 = [SIT.x + 380 * SK, SIT.y + 640 * SK];
+  const p = prog(t, LY.amTrapped, LY.amTrapped + 0.35, ease.outCubic);
+  const e: P2 = [lerp(from[0], HEART_WALL[0] + 6, p), lerp(from[1], HEART_WALL[1], p)];
+  const hit = p >= 1 ? env(t - (LY.amTrapped + 0.35), 0.35) : 0;
+  const o = 1 - prog(t, LY.trappedIn + 0.3, LY.trappedIn + 0.6);
+  return (
+    <Layer opacity={o}>
+      <path d={`M ${r2(from[0])} ${r2(from[1])} L ${r2(e[0])} ${r2(e[1])}`} stroke={K.orange} strokeWidth={4} strokeLinecap="round" />
+      {p >= 1 && <circle cx={r2(HEART_WALL[0])} cy={r2(HEART_WALL[1])} r={r2(10 + 30 * (1 - hit))} fill="none" stroke={K.orange} strokeWidth={3} opacity={0.4 + 0.6 * hit} />}
+      {p >= 1 && <circle cx={r2(HEART_WALL[0])} cy={r2(HEART_WALL[1])} r={7} fill={K.orange} />}
+    </Layer>
   );
 };
 
@@ -354,11 +423,22 @@ const You: React.FC<{t: number}> = ({t}) => {
 const LoveCaption: React.FC<{t: number}> = ({t}) => {
   useFonts();
   if (t < LY.studied || t > 181.0) return null;
-  const cw = textW('I’ve studied', `500 56px ${SERIF}`) + 56 * 0.55 + 22;
+  // v11: "man" now lives only in the page's title; down here it read as part of the lyric
+  const cw = textW('I’ve studied', `500 ${LYRIC.size}px ${SERIF}`) + LYRIC.size * 0.55 + 22;
   return (
     <Layer>
-      <Caption t={t} t0={LY.studied} t1={180.75} text="I’ve studied" x={90} y={1010} />
-      <StretchKw t={t} pre="man " chunks={loveChunks(LY.love1, 180.62)} t1={180.75} x={90 + cw} y={1010} size={104} anchor="start" />
+      {/* v10: the portrait runs to the frame's bottom edge, so the line sits on a soft
+          darkening of it (no plate edge) */}
+      <defs>
+        <linearGradient id="s4-love-foot" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={K.bg} stopOpacity={0} />
+          <stop offset="0.5" stopColor={K.bg} stopOpacity={0.94} />
+          <stop offset="1" stopColor={K.bg} stopOpacity={0.94} />
+        </linearGradient>
+      </defs>
+      <rect x={0} y={840} width={1000} height={240} fill="url(#s4-love-foot)" opacity={prog(t, LY.studied, LY.studied + 0.2) * (1 - prog(t, 180.8, 181.0))} />
+      <Caption t={t} t0={LY.studied} t1={180.69} text="I’ve studied" {...LYRIC} />
+      <StretchKw t={t} chunks={loveChunks(LY.love1, 180.62)} t1={180.69} x={LYRIC.x + cw} y={LYRIC.y} size={104} anchor="start" />
     </Layer>
   );
 };
@@ -371,8 +451,9 @@ export const S4Love: React.FC = () => {
   const cmA = t < 191.4 ? 0 : targetA(5, t, 0.15);
   return (
     <>
-      {/* profile, eyes closed, drawn slowly beside the page */}
-      {t < 181.4 && <LineArt pose="profile" x={0} y={150} h={800} crop={[60, 0, 1059, 941]} reveal={[177.4, 180.1]} unreveal={[180.86, 181.3]} />}
+      {/* profile, eyes closed, drawn slowly beside the page. v10: the art's own top and
+          bottom edges sit on the frame's edges; her face stays clear of the page on the right */}
+      {t < 181.4 && <LineArt pose="profile" x={0} y={0} h={1080} crop={[217, 0, 1059, 941]} reveal={[177.4, 180.1]} unreveal={[180.86, 181.3]} erase={[{t: 177.3, poly: PROFILE_EYE, dur: 1 / FPS}]} />}
       {/* the chat column (left), from "Question me" */}
       {t >= LY.question && (
         <>
@@ -391,6 +472,7 @@ export const S4Love: React.FC = () => {
         </Collapse>
       )}
       <HeartLayer t={t} />
+      <Trapped t={t} />
       <Layer>
         <Dots t={t} />
       </Layer>

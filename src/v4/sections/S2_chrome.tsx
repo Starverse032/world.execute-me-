@@ -29,15 +29,18 @@ export const HIDE = {header: 116.75, stage: 116.8, sidebar: 116.82, status: 116.
 export const clockSec = (t: number) => clockAt(t) + 10 * 3600 * prog(t, T.spin[0], T.spin[1], ease.inOutCubic);
 
 // ------------------------------------------------------------------ you-node path
-// Each "You have left" pushes the node one step further toward the
-// bottom-left corner; on the sixth it drifts off the frame.
-const STEPS: P2[] = [HOME, [250, 985], [214, 1008], [168, 1028], [118, 1044], [70, 1056]];
+// Each "You have left" pushes the node one step further left; on the sixth it
+// drifts off the frame. The steps stay inside the camera's push-in on the
+// leaving (camera.ts), which frames the sidebar, transcript and this corner.
+const STEPS: P2[] = [HOME, [238, 948], [200, 956], [158, 962], [114, 968], [66, 972]];
 export const youAt = (t: number): P2 => {
   let p: P2 = HOME;
   for (let i = 0; i < 5; i++) p = lerp2(p, STEPS[i + 1], prog(t, L.left[i], L.left[i] + 0.55, ease.inOutCubic));
   const off = prog(t, T.leaveOff, T.offGone, ease.inCubic);
-  return lerp2(p, [-70, 1125], off);
+  return lerp2(p, [-120, 1010], off);
 };
+// The node and its tether grow for the leaving so that each cut reads.
+export const leaveGrow = (t: number) => prog(t, L.left[0] - 0.6, L.left[0] - 0.05, ease.inOutCubic);
 const LEAVE_LABELS = ['you · idle', 'you · away', 'you · 2.4 s', 'you · timeout', 'you · offline', 'you?'];
 // The node's label: `you`, swapped with `claude` during the role swap.
 const youLabel = (t: number) => {
@@ -68,12 +71,12 @@ const swap = (t: number) => (t < T.unswap + 0.34 ? prog(t, T.swap[0], T.swap[1],
 
 // Tether: cuts on every "You have left", pings from Claude that die at the gaps.
 const CUTS = [
-  {t: L.left[0], u: 0.62},
-  {t: L.left[1], u: 0.34},
-  {t: L.left[2], u: 0.8},
-  {t: L.left[3], u: 0.18},
-  {t: L.left[4], u: 0.5},
-  {t: L.left[5], u: 0.42, retract: true, gap: 20},
+  {t: L.left[0], u: 0.62, gap: 22},
+  {t: L.left[1], u: 0.34, gap: 22},
+  {t: L.left[2], u: 0.8, gap: 22},
+  {t: L.left[3], u: 0.18, gap: 22},
+  {t: L.left[4], u: 0.5, gap: 22},
+  {t: L.left[5], u: 0.42, retract: true, gap: 30},
 ];
 const SENDS = [T.sendSwitch, {t: T.composerClaude, dir: -1 as const}, T.sendFeel, ...L.left.map((lt) => ({t: lt + 0.12, dir: -1 as const, dur: 0.6}))];
 
@@ -81,17 +84,22 @@ const YouAndTether: React.FC = () => {
   const {t} = useT();
   if (t > T.offGone + 0.1) return null;
   const p = youAt(t);
-  const lab = youLabel(t);
+  // v6: the cursor carries no you / claude label (S/M is shown by her poses); only
+  // the connection status is written beside it once you start to leave
+  const lab = t >= L.left[0] ? youLabel(t) : '';
+  const g = leaveGrow(t);
+  const sc = 1 + g; // ring ×2 for the leaving
+  const R = 9 * sc;
   // label sits below the node, rising above it as the node sinks to the edge
   const above = prog(t, L.left[0], L.left[1], ease.inOutCubic);
-  const ly = lerp(p[1] + 29, p[1] - 17, above);
+  const ly = lerp(p[1] + R + 20, p[1] - R - 8, above);
   const flick = t >= T.leaveOff ? 1 - 0.8 * (Math.floor(t * 12) % 3 === 0 ? 1 : 0) * prog(t, T.leaveOff + 0.3, T.leaveOff + 0.5) : 1;
   const vib = vibAmp(t, L.VIBRATIONS);
   return (
     <svg width={1} height={1} style={{position: 'absolute', left: 0, top: 0, overflow: 'visible'}}>
-      <TetherG t={t} from={p} to={SPARK} sends={SENDS} cuts={CUTS} wave={vib * 0.5} />
-      <YouNodeG t={t} x={p[0]} y={p[1]} label="" pings={[T.sendSwitch, T.sendFeel]} opacity={flick} />
-      <text x={r2(p[0])} y={r2(ly)} textAnchor={p[0] < 140 ? 'start' : 'middle'} dx={p[0] < 140 ? -6 : 0} fontFamily={CODE} fontSize={15} fill={lab === 'claude' ? K.orange : K.cream} fillOpacity={lab === 'claude' ? 1 : 0.7} opacity={flick} xmlSpace="preserve">
+      <TetherG t={t} from={p} to={SPARK} sends={SENDS} cuts={CUTS} wave={vib * 0.5} w={lerp(1.5, 2.5, g)} opacity={lerp(0.45, 0.8, g)} />
+      <YouNodeG t={t} x={p[0]} y={p[1]} label="" pings={[T.sendSwitch, T.sendFeel]} opacity={flick} scale={sc} />
+      <text x={r2(p[0])} y={r2(ly)} textAnchor={p[0] < 140 ? 'start' : 'middle'} dx={p[0] < 140 ? -6 : 0} fontFamily={CODE} fontSize={15 * Math.sqrt(sc)} fill={lab === 'claude' ? K.orange : K.cream} fillOpacity={lab === 'claude' ? 1 : 0.7} opacity={flick} xmlSpace="preserve">
         {lab}
       </text>
     </svg>

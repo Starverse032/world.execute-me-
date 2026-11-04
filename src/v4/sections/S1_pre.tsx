@@ -171,6 +171,9 @@ const lidEdge = (k: number, sgn: number) => {
 
 // Dizzy polygons (v1 A_pre idea): concentric n-gons plotted on half beats,
 // alternating rotation stepped on beats, wobbling centre, imploding at the end.
+// v8: back to the v5 look (the full-frame eye layer now ends on "So dizzy"),
+// with outer rings added past the frame edges so the spin fills the screen;
+// they plot on quarter beats from the start, outside in.
 const POLYS = [
   {n: 3, R: 70, w: 2, c: K.orange, o: 1},
   {n: 4, R: 130, w: 1.5, c: K.cream, o: 1},
@@ -178,7 +181,13 @@ const POLYS = [
   {n: 6, R: 265, w: 1.5, c: K.cream, o: 0.7},
   {n: 7, R: 340, w: 1.5, c: K.cream, o: 0.45},
   {n: 8, R: 420, w: 1.5, c: K.cream, o: 0.25},
-].map((p, k) => ({...p, t0: L.dizzy + (k * BEAT) / 2, d: ngonPath(0, 0, p.R, p.n)}));
+  {n: 5, R: 530, w: 2, c: K.orange, o: 0.45},
+  {n: 6, R: 650, w: 1.5, c: K.cream, o: 0.3},
+  {n: 4, R: 790, w: 1.5, c: K.cream, o: 0.28},
+  {n: 7, R: 950, w: 2, c: K.orange, o: 0.35},
+  {n: 5, R: 1130, w: 1.5, c: K.cream, o: 0.25},
+  {n: 6, R: 1330, w: 1.5, c: K.cream, o: 0.22},
+].map((p, k) => ({...p, t0: k < 6 ? L.dizzy + (k * BEAT) / 2 : L.dizzy + ((11 - k) * BEAT) / 4, d: ngonPath(0, 0, p.R, p.n)}));
 const IMP0 = 50.98, IMP1 = 51.3;
 
 const Dizzy: React.FC<{t: number}> = ({t}) => {

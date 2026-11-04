@@ -151,7 +151,7 @@ const FloatCmds: React.FC<{t: number}> = ({t}) => (
 
 // ------------------------------------------------------------------ the last lines
 const ExitLines: React.FC<{t: number}> = ({t}) => {
-  if (t < T_EXIT0 || t > T_TEXT_FADE[1]) return null;
+  if (t < T_EXIT0) return null;
   const o = 1 - prog(t, T_TEXT_FADE[0], T_TEXT_FADE[1]);
   const call = 'world.execute(me)';
   const n = Math.min(call.length, Math.floor((t - T_EXIT0) * FPS * 5 + 1));
@@ -160,35 +160,57 @@ const ExitLines: React.FC<{t: number}> = ({t}) => {
   const el = prog(t, rt, rt + 3 / FPS);
   const x0 = 812, y0 = 624;
   return (
-    <g opacity={o}>
-      <circle cx={x0 + 8} cy={y0 - 9} r={7} fill={running ? K.orange : K.creamDim} />
-      <text x={x0 + 30} y={y0} fontFamily={CODE} fontSize={26} fill={K.cream}>
-        {call.slice(0, n)}
-      </text>
-      {el > 0 && (
-        <>
-          <Elbow x={x0 + 32} y={y0 + 34} p={el} />
-          <text x={x0 + 56} y={y0 + 42} fontFamily={CODE} fontSize={26} fill={K.creamDim} opacity={el >= 1 ? 1 : 0}>
-            {'exit 0'}
+    <>
+      {o > 0 && (
+        <g opacity={o}>
+          <circle cx={x0 + 8} cy={y0 - 9} r={7} fill={running ? K.orange : K.creamDim} />
+          <text x={x0 + 30} y={y0} fontFamily={CODE} fontSize={26} fill={K.cream}>
+            {call.slice(0, n)}
           </text>
-        </>
+          {el > 0 && (
+            <>
+              <Elbow x={x0 + 32} y={y0 + 34} p={el} />
+              <text x={x0 + 56} y={y0 + 42} fontFamily={CODE} fontSize={26} fill={K.creamDim} opacity={el >= 1 ? 1 : 0}>
+                {'exit 0'}
+              </text>
+            </>
+          )}
+        </g>
       )}
+      {/* everything she went through, as the system records it: held to the last frame */}
       {t >= T_WORKED && (
-        <g opacity={prog(t, T_WORKED, T_WORKED + 5 / FPS)}>
-          <Spark x={x0 + 9} y={y0 + 99} R={13} color={K.creamDim} />
-          <text x={x0 + 30} y={y0 + 108} fontFamily={CODE} fontSize={26} fill={K.creamDim}>
+        <g opacity={prog(t, T_WORKED, T_WORKED + 6 / FPS)}>
+          {/* clear of the tether line (which runs to the lower left) */}
+          <Spark x={960 - 150} y={786} R={20} color={K.cream} />
+          <text x={960 - 116} y={800} fontFamily={CODE} fontSize={44} fill={K.cream}>
             {'Worked for 3m 31s'}
           </text>
         </g>
       )}
+    </>
+  );
+};
+
+// the residue that is not collected: the tether still runs from the dot to the
+// empty place where you were
+const EmptyEnd: React.FC<{t: number}> = ({t}) => {
+  const t0 = T_COLLAPSE[1] + 0.1;
+  if (t < t0) return null;
+  const p = prog(t, t0, t0 + 0.6, ease.inOutCubic);
+  const e: P2 = [lerp(FINAL[0], YOU_END[0], p), lerp(FINAL[1], YOU_END[1], p)];
+  return (
+    <g>
+      <path d={`M ${FINAL[0]} ${FINAL[1]} L ${r2(e[0])} ${r2(e[1])}`} stroke={K.cream} strokeOpacity={0.7} strokeWidth={1.5} />
+      <circle cx={YOU_END[0]} cy={YOU_END[1]} r={14} fill={K.bg} stroke={K.cream} strokeOpacity={0.45 * prog(t, t0 + 0.5, t0 + 0.7)} strokeWidth={2} strokeDasharray="4 4" />
     </g>
   );
 };
+const YOU_END: P2 = [272, 940];
 
 // ------------------------------------------------------------------ part
 export const S4Outro: React.FC = () => {
   const {t} = useT();
-  if (t < T_CHROME || t > 211.4) return null;
+  if (t < T_CHROME) return null;
   const [dx, dy] = dotPos(t);
   const dotIn = clamp01((t - T_DOT_OUT) * FPS / 4);
   const dotO = dotIn * (1 - prog(t, T_DOT_FADE[0], T_DOT_FADE[1]));
@@ -208,6 +230,7 @@ export const S4Outro: React.FC = () => {
       <KwCode t0={LY.exec} t1={206.45} pre="world." kw="EXECUTION" post="(me);" x={960} y={720} size={180} a={0} exit="fade" underline />
       <Layer>
         {ring > 0 && ring < 1 && <circle cx={FINAL[0]} cy={FINAL[1]} r={r2(lerp(9, 420, ease.outCubic(ring)))} fill="none" stroke={K.cream} strokeWidth={1} opacity={0.45 * (1 - ring)} />}
+        <EmptyEnd t={t} />
         {t >= T_DOT_OUT && <Dot t={t} x={dx} y={dy} opacity={dotO} ring={t < T_TEXT_FADE[0]} />}
         <ExitLines t={t} />
       </Layer>

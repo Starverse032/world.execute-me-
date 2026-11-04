@@ -48,7 +48,8 @@ const logTail = (P: Proc, tOpen: number, t: number, cap: number, offset = 0): Lo
   return out.slice(-cap);
 };
 
-// One log line, with grep-style orange "you" in the grep process.
+// One log line, with grep-style orange "you": in every process, so the swarm
+// reads as one search for you everywhere.
 const LogText: React.FC<{l: LogLine; x: number; y: number; size: number; maxCh: number; hi: boolean; t: number; amt: number; seed: number}> = ({l, x, y, size, maxCh, hi, t, amt, seed}) => {
   let s = l.s.length > maxCh ? l.s.slice(0, Math.max(0, maxCh - 1)) + '…' : l.s;
   if (amt > 0 && !l.cmd) s = corrupt(s, t, amt, seed);
@@ -92,7 +93,7 @@ const ProcBody: React.FC<{P: Proc; i: number; tOpen: number}> = ({P, i, tOpen}) 
   return (
     <svg width={P.w} height={bodyH} style={{position: 'absolute', left: 0, top: 0}}>
       {lines.map((l, k) => (
-        <LogText key={k} l={l} x={18} y={14 + LOG_LH * (k + 0.5) + LOG_SIZE * 0.36} size={LOG_SIZE} maxCh={maxCh} hi={i === 3} t={t} amt={amt} seed={i * 50 + k} />
+        <LogText key={k} l={l} x={18} y={14 + LOG_LH * (k + 0.5) + LOG_SIZE * 0.36} size={LOG_SIZE} maxCh={maxCh} hi t={t} amt={amt} seed={i * 50 + k} />
       ))}
     </svg>
   );
@@ -147,7 +148,7 @@ const ForkWin: React.FC<{c: Child; t: number}> = ({c, t}) => {
       <path d={rrPath(x, y, w, h, 10)} fill={K.bg} fillOpacity={0.94} />
       <g transform={`translate(${r2(x + cdx)} ${r2(y + 34 + cdy)})`}>
         {lines.map((l, k) => (
-          <LogText key={k} l={l} x={14} y={8 + lh * (k + 0.5) + size * 0.36} size={size} maxCh={maxCh} hi={c.proc === 3} t={t} amt={0.1 * band(a, 0.8, 1)} seed={c.seed + k} />
+          <LogText key={k} l={l} x={14} y={8 + lh * (k + 0.5) + size * 0.36} size={size} maxCh={maxCh} hi t={t} amt={0.1 * band(a, 0.8, 1)} seed={c.seed + k} />
         ))}
       </g>
       <circle cx={x + 18} cy={y + 17} r={3.5} fill={K.orange} />

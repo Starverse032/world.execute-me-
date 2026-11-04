@@ -3,6 +3,8 @@ out/
 art/
 # The song is not included (copyright). Put your own copy here; see README.md.
 public/song.mp3
+# The original LRC is not included either; scripts/make_srt_full.py reads it from here.
+docs/lyrics.lrc
 *.mp4
 *.flac
 *.wav

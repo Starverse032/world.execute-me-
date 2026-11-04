@@ -109,6 +109,9 @@ export const rotPts = (pts: P2[], c: P2, deg: number): P2[] => {
 export const lerpPts = (a: P2[], b: P2[], p: number): P2[] => a.map((q, i) => [q[0] + (b[i][0] - q[0]) * p, q[1] + (b[i][1] - q[1]) * p]);
 
 // ------------------------------------------------------------------ lyric caption
+// v7: one reading place for the sung line in every full-frame shot and in the
+// lyric guard: bottom left, the same baseline and size.
+export const LYRIC = {x: 100, y: 1008, size: 54};
 // A lone lyric line (special UIs): ● + SERIF text streaming at ≥ 40 ch/s, ALL-CAPS
 // words in mono orange. kwAt: the part from that char index streams from that time.
 const isKw = (w: string) => /^[A-Z][A-Z\-_]+$/.test(w.replace(/[^A-Za-z_\-]/g, '')) && w.replace(/[^A-Z]/g, '').length >= 2;
@@ -123,7 +126,8 @@ export const Caption: React.FC<{
   anchor?: 'start' | 'middle';
   marks?: [number, number][];
   bullet?: boolean;
-}> = ({t, t0, t1, text, x, y, size = 56, anchor = 'start', marks, bullet = true}) => {
+  plate?: boolean; // a dark plate under the whole line, for captions over art
+}> = ({t, t0, t1, text, x, y, size = 56, anchor = 'start', marks, bullet = true, plate = false}) => {
   useFonts();
   if (t < t0 || t > t1 + 5 / FPS) return null;
   const out = prog(t, t1, t1 + 5 / FPS);
@@ -144,11 +148,12 @@ export const Caption: React.FC<{
     n = Math.min(end, c + Math.floor((t - ts) * 40 + 1e-6));
   });
   const streaming = n < text.length;
-  let used = 0, cx = left + bw;
+  let used = 0, cx = left + bw, visEnd = left + bw;
   const els: React.ReactNode[] = [];
   words.forEach((w, i) => {
     const vis = Math.max(0, Math.min(w.s.length, n - used));
     used += w.s.length + 1;
+    if (vis > 0) visEnd = cx + (ww[i] * vis) / w.s.length;
     if (vis > 0)
       els.push(
         <text key={i} x={r2(cx)} y={y} fontFamily={w.kw ? CODE : SERIF} fontWeight={w.kw ? 700 : 500} fontSize={w.kw ? ks : size} fill={w.kw ? K.orange : K.cream} xmlSpace="preserve">
@@ -159,6 +164,7 @@ export const Caption: React.FC<{
   });
   return (
     <g opacity={1 - out} transform={out ? `translate(0 ${r2(-14 * out)})` : undefined}>
+      {plate && <rect x={r2(left - 34)} y={r2(y - size * 1.08)} width={r2(visEnd - left + 68)} height={r2(size * 1.52)} rx={10} fill={K.bg} fillOpacity={0.92} />}
       {bullet && <circle cx={r2(left + size * 0.14)} cy={r2(y - size * 0.3)} r={size * 0.1} fill={streaming ? K.orange : K.creamDim} opacity={streaming ? 0.6 + 0.4 * pulse(t) : 1} />}
       {els}
     </g>

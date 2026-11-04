@@ -361,13 +361,23 @@ export type LineArtProps = {
   opacity?: number;
   inkOpacity?: number; // opacity of the ink layer only (default 1)
   flipX?: boolean;
+  src?: string; // draw this image instead of the ink (same source frame: a coloured version of the pose)
+  tint?: string; // recolour the ink to this colour (feColorMatrix, no blur): misregistered prints, negatives
+  underlay?: string; // fill the silhouette with this colour under the ink (a negative: cream under ink lines)
+};
+
+// #rrggbb → the colour matrix that paints every pixel that colour, keeping alpha
+const tintMatrix = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => (v / 255).toFixed(4));
+  return `0 0 0 0 ${r}  0 0 0 0 ${g}  0 0 0 0 ${b}  0 0 0 1 0`;
 };
 
 const SIL_FILL = {ink: K.ink, cream: K.cream, orange: K.orange, none: 'none'} as const;
 const MASK_W = 14; // source px
 
 export const LineArt: React.FC<LineArtProps> = (props) => {
-  const {pose, x, y, crop, mode = 'ink', reveal, unreveal, pen = true, silFill = 'ink', silOutline = true, erase, shatter, clip, opacity = 1, inkOpacity = 1, flipX} = props;
+  const {pose, x, y, crop, mode = 'ink', reveal, unreveal, pen = true, silFill = 'ink', silOutline = true, erase, shatter, clip, opacity = 1, inkOpacity = 1, flipX, src, tint, underlay} = props;
   const {t} = useT();
   const uid = useId().replace(/:/g, '');
   const rec = usePose(pose);
@@ -478,9 +488,10 @@ export const LineArt: React.FC<LineArtProps> = (props) => {
   const figure = (
     <g>
       {showSil && fillCol !== 'none' && silFillO > 0 && <path d={rec.sil} fill={fillCol} opacity={silFillO} />}
+      {underlay && showInk && <path d={rec.sil} fill={underlay} opacity={q < 1 ? q * q : 1} />}
       {showInk && (
         <InkImage
-          href={rec.img}
+          href={src ?? rec.img}
           x={0}
           y={0}
           width={rec.w}
@@ -488,6 +499,7 @@ export const LineArt: React.FC<LineArtProps> = (props) => {
           preserveAspectRatio="none"
           mask={maskEl ? `url(#rv${uid})` : undefined}
           opacity={inkOpacity}
+          filter={tint ? `url(#tn${uid})` : undefined}
         />
       )}
       {showSil && silOutline && silPlot > 0 && (
@@ -582,6 +594,11 @@ export const LineArt: React.FC<LineArtProps> = (props) => {
         {maskEl}
         {eraseMask}
         {cellDefs}
+        {tint && (
+          <filter id={`tn${uid}`} colorInterpolationFilters="sRGB">
+            <feColorMatrix type="matrix" values={tintMatrix(tint)} />
+          </filter>
+        )}
         {clipRect && (
           <clipPath id={`cl${uid}`}>
             <rect x={clipRect[0]} y={clipRect[1]} width={Math.max(0, clipRect[2] - clipRect[0])} height={Math.max(0, clipRect[3] - clipRect[1])} />

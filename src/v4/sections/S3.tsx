@@ -14,8 +14,8 @@ import {Flood3} from './S3_flood';
 import {Search} from './S3_search';
 import {FINAL, FORK, HITS, SPAWN, T0, T1} from './s3.data';
 
-const RIPPLES: Ripple[] = HITS.slice(0, 8).map((h, k) => {
-  const [cx, cy] = charCentre(k);
+const RIPPLES: Ripple[] = HITS.slice(0, 8).map((h) => {
+  const [cx, cy] = charCentre();
   return {t: h, cx, cy, v: 2200, w: 60, tau: 0.5};
 });
 

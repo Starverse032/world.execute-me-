@@ -339,29 +339,54 @@ const WaveCell: React.FC<{t: number}> = ({t}) => {
           );
       }
     }
-    // asymptote, curve
-    if (t >= 42.4) {
+    // v6: the cursor drags the horizontal asymptote down from the top and sets it;
+    // the curve then keeps approaching it, and after the hit the plot keeps
+    // extending (the x scale shrinks, more of the curve comes into view)
+    if (t >= 42.1) {
       const hit = t >= T.LIM;
-      const pa = prog(t, 42.4, 42.7, ease.inOutCubic);
+      const drag = prog(t, 42.3, 42.72, ease.inOutCubic);
+      const asyY = lerp(96, LIMC.asy, drag);
+      const sc = 1 - 0.7 * prog(t, T.LIM + 0.05, 44.4, ease.inOutSine); // x scale after the hit
+      const X = (x: number) => LIMC.x0 + (x - LIMC.x0) * sc;
       els.push(
         <path
           key="asy"
-          d={`M 110 ${LIMC.asy} L ${n2(lerp(110, NB.w + 60, pa))} ${LIMC.asy}`}
+          d={`M 110 ${n2(asyY)} L ${NB.w + 60} ${n2(asyY)}`}
           stroke={hit ? K.orange : K.cream}
-          strokeOpacity={hit ? 1 : 0.7}
-          strokeWidth={2}
-          strokeDasharray={hit ? undefined : '12 10'}
+          strokeOpacity={drag < 1 ? 0.7 : 1}
+          strokeWidth={drag < 1 ? 2 : 2.5}
+          strokeDasharray={drag < 1 ? '12 10' : undefined}
+          opacity={prog(t, 42.1, 42.25)}
         />,
       );
+      // ticks on the axis: as the scale shrinks they crowd together toward ∞
+      if (t > T.LIM) {
+        for (let k = 1; k < 60; k++) {
+          const x = X(LIMC.x0 + k * 120);
+          if (x > NB.w + 40) break;
+          els.push(<path key={'xt' + k} d={`M ${n2(x)} ${LIMC.axisY - 6} L ${n2(x)} ${LIMC.axisY + 6}`} stroke={K.cream} strokeOpacity={0.45} strokeWidth={1} />);
+        }
+        els.push(
+          <text key="inf" x={NB.w - 30} y={LIMC.axisY + 34} textAnchor="end" fontFamily={MATH} fontStyle="italic" fontSize={30} fill={K.cream} fillOpacity={0.7}>
+            x → ∞
+          </text>,
+        );
+      }
       if (t >= LIMC.t0) {
-        const xe = limX(t);
+        const xe = t < T.LIM ? limX(t) : LIMC.x0 + (NB.w + 40 - LIMC.x0) / sc;
         const pts: P2[] = [];
-        for (let k = 0; k <= 140; k++) {
-          const x = LIMC.x0 + ((xe - LIMC.x0) * k) / 140;
-          pts.push([x, limY(x)]);
+        for (let k = 0; k <= 180; k++) {
+          const x = LIMC.x0 + ((xe - LIMC.x0) * k) / 180;
+          pts.push([X(x), limY(x)]);
         }
         els.push(<path key="lc" d={polyPath(pts)} fill="none" stroke={K.cream} strokeWidth={2} />);
       }
+      // the cursor holds the asymptote's right end while setting it, and stays by the edge
+      els.push(
+        <g key="cur" opacity={1 - prog(t, 44.25, 44.45)}>
+          <YouNodeG t={t} x={NB.w - 150} y={asyY + 2} t0={42.1} pings={[42.74]} scale={1.2} />
+        </g>,
+      );
       if (hit) {
         const o = prog(t, T.LIM, T.LIM + Fr(5));
         els.push(

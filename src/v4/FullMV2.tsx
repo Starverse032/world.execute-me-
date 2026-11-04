@@ -7,6 +7,14 @@ import {K, useT} from '../v3/core';
 import './fonts';
 import {Grid, GridProps} from './shell/Grid';
 import {sectionAt} from './timeline';
+import {cameraTransform} from './camera';
+import {VerseFull} from './sections/S0_full';
+import {StimFull} from './sections/S1_full';
+import {CatFull, ComfortFull} from './sections/S1_closeups';
+import {ScenesS2} from './sections/S2_scenes';
+import {ExtrasV5} from './sections/Extras';
+import {LyricGuard} from './LyricGuard';
+import {EyeFull} from './sections/S1_eye';
 import {Section0} from './sections/S0';
 import {Section1} from './sections/S1';
 import {Section2} from './sections/S2';
@@ -25,14 +33,31 @@ const SharedGrid: React.FC = () => {
   return <Grid {...GRIDS[sectionAt(t)]} />;
 };
 
+// Everything but the audio sits under the virtual camera (camera.ts).
+const Camera: React.FC<{children: React.ReactNode}> = ({children}) => {
+  const {t} = useT();
+  return <AbsoluteFill style={{transformOrigin: '0 0', transform: cameraTransform(t)}}>{children}</AbsoluteFill>;
+};
+
 export const FullMV2: React.FC = () => (
   <AbsoluteFill style={{background: K.bg, overflow: 'hidden'}}>
     <Audio src={staticFile('song.mp3')} />
-    <SharedGrid />
-    <Section0 />
-    <Section1 />
-    <Section2 />
-    <Section3 />
-    <Section4 />
+    <Camera>
+      <SharedGrid />
+      <Section0 />
+      <Section1 />
+      <Section2 />
+      <Section3 />
+      <Section4 />
+      <ExtrasV5 />
+    </Camera>
+    {/* full-frame shots that take over from a camera push (they are not themselves under the camera) */}
+    <VerseFull />
+    <EyeFull />
+    <StimFull />
+    <ComfortFull />
+    <CatFull />
+    <ScenesS2 />
+    <LyricGuard />
   </AbsoluteFill>
 );

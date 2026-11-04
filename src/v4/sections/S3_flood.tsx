@@ -8,16 +8,19 @@
 //  Final (161.58): orange flash (2 f), ink-on-orange EXECUTION(me); in a frame,
 //    hard black: the frame's segments drift, the dot remains.
 import React, {useId} from 'react';
-import {clamp01, ease, FPS, K, lerp, useT} from '../../v3/core';
-import {usePose} from '../char/LineArt';
-import {CJK, CODE, MONO_ADV, SERIF} from '../fonts';
+import {clamp01, ease, FPS, K, lerp, prog, useT} from '../../v3/core';
+import {LineArt, preloadPoses, usePose} from '../char/LineArt';
+import {CJK, CJK_SERIF, CODE, MONO_ADV, SERIF} from '../fonts';
 import {tokenize, TOK_STYLE} from '../shell/Code';
 import {Frame, Layer, r2, rrPath} from '../shell/lib';
 import {Win} from '../shell/Win';
-import {BLACK, CARD, COUNT_T, DOT_END, FINAL, FLOOD, HITS, hitIndex, LOCALE_LINES, REGIONS, SEG, segShatter, SIL, WORD_SIZE, WORDS} from './s3.data';
+import {BLACK, CARD, COUNT_T, DOT_END, ERASED, FINAL, FLOOD, HITS, hitIndex, LOCALE_LINES, SEG, segShatter, SIL, WORD_SIZE, WORDS} from './s3.data';
 
 const UNIT = 'EXECUTION ';
 const SIL_K = SIL.h / 1536;
+// the final hit: `fall` (otherwise unused) as an ink silhouette behind the keyword
+preloadPoses('fall');
+const FALL = {h: 1180, x: 960 - (1180 * 1024) / 1536 / 2 - 260, y: -120};
 
 // ------------------------------------------------------------------ round 3
 const Flood: React.FC = () => {
@@ -50,8 +53,8 @@ const Flood: React.FC = () => {
           {rec && (
             <g transform={silTf}>
               <path d={rec.sil} fill="#000" />
-              {REGIONS.map((r, i) => (
-                <polygon key={i} points={r.poly.map((p) => p.join(',')).join(' ')} fill="#fff" />
+              {ERASED.map((poly, i) => (
+                <polygon key={i} points={poly.map((p) => p.join(',')).join(' ')} fill="#fff" />
               ))}
             </g>
           )}
@@ -89,8 +92,8 @@ const Flood: React.FC = () => {
         {rec && (
           <g transform={silTf}>
             <path d={rec.sil} fill="none" stroke={K.orange} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" opacity={outlineO} />
-            {REGIONS.map((r, i) => (
-              <polygon key={i} points={r.poly.map((p) => p.join(',')).join(' ')} fill="none" stroke={K.creamDim} strokeWidth={1.5} strokeDasharray="6 6" vectorEffect="non-scaling-stroke" opacity={0.7} />
+            {ERASED.map((poly, i) => (
+              <polygon key={i} points={poly.map((p) => p.join(',')).join(' ')} fill="none" stroke={K.creamDim} strokeWidth={1.5} strokeDasharray="6 6" vectorEffect="non-scaling-stroke" opacity={0.7} />
             ))}
           </g>
         )}
@@ -209,7 +212,8 @@ const Count: React.FC = () => {
                   x={w.x}
                   y={w.y}
                   textAnchor="middle"
-                  fontFamily={w.cjk ? CJK : SERIF}
+                  fontFamily={w.cjk ? CJK_SERIF : SERIF}
+                  fontWeight={500}
                   fontSize={WORD_SIZE}
                   fill={toCream < 1 ? K.orange : K.cream}
                   fillOpacity={newest ? 1 : 0.7}
@@ -221,7 +225,7 @@ const Count: React.FC = () => {
                   {w.word}
                 </text>
               </g>
-              <text x={w.x} y={w.y + 54} textAnchor="middle" fontFamily={CODE} fontSize={30} fill={newest ? K.orange : K.creamDim} stroke={K.bg} strokeWidth={8} style={{paintOrder: 'stroke'}}>
+              <text x={w.x} y={w.y + 62} textAnchor="middle" fontFamily={CODE} fontSize={42} fontWeight={600} fill={newest ? K.orange : K.cream} fillOpacity={newest ? 1 : 0.7} stroke={K.bg} strokeWidth={10} style={{paintOrder: 'stroke'}}>
                 {w.code}
               </text>
               <circle cx={nx} cy={ny} r={4} fill={K.bg} stroke={newest ? K.orange : K.cream} strokeOpacity={newest ? 1 : 0.7} strokeWidth={1.5} />
@@ -246,26 +250,34 @@ const Final: React.FC = () => {
     const kwW = 9 * MONO_ADV * size, postW = 5 * MONO_ADV * ps;
     const left = 960 - (kwW + postW) / 2;
     const base = SEG.y + 34 + (SEG.h - 34) / 2 + size * 0.36;
+    // she falls backward through the frame, an ink silhouette on the orange
+    const drop = ease.inQuad(clamp01(fs / 13));
+    const knock = {stroke: K.orange, strokeWidth: 14, strokeLinejoin: 'round' as const, style: {paintOrder: 'stroke' as const}};
     return (
-      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
-        <rect x={0} y={0} width={1920} height={1080} fill={K.orange} />
+      <>
+        <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
+          <rect x={0} y={0} width={1920} height={1080} fill={K.orange} />
+        </svg>
+        {ink && <LineArt pose="fall" x={FALL.x} y={FALL.y + 150 * drop} h={FALL.h} mode="sil" silFill="ink" silOutline={false} pen={false} />}
         {ink && (
-          <g transform={sc !== 1 ? `translate(960 ${r2(base)}) scale(${r2(sc * 1000) / 1000}) translate(-960 ${r2(-base)})` : undefined}>
-            <path d={rrPath(SEG.x, SEG.y, SEG.w, SEG.h, 10)} fill="none" stroke={K.bg} strokeWidth={3} />
-            <path d={`M ${SEG.x} ${SEG.y + 34} L ${SEG.x + SEG.w} ${SEG.y + 34}`} stroke={K.bg} strokeWidth={1.5} />
-            <text x={SEG.x + SEG.w / 2} y={SEG.y + 23} textAnchor="middle" fontFamily={CODE} fontSize={16} fill={K.bg}>
-              {'me — execute'}
-            </text>
-            <text x={r2(left)} y={r2(base)} fontFamily={CODE} fontWeight={700} fontSize={size} fill={K.bg}>
-              {'EXECUTION'}
-            </text>
-            <text x={r2(left + kwW)} y={r2(base)} fontFamily={CODE} fontSize={ps} fill={K.bg} xmlSpace="preserve">
-              {'(me);'}
-            </text>
-            <rect x={r2(left)} y={r2(base + size * 0.14)} width={r2(kwW)} height={4} fill={K.bg} />
-          </g>
+          <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
+            <g transform={sc !== 1 ? `translate(960 ${r2(base)}) scale(${r2(sc * 1000) / 1000}) translate(-960 ${r2(-base)})` : undefined}>
+              <path d={rrPath(SEG.x, SEG.y, SEG.w, SEG.h, 10)} fill="none" stroke={K.bg} strokeWidth={3} />
+              <path d={`M ${SEG.x} ${SEG.y + 34} L ${SEG.x + SEG.w} ${SEG.y + 34}`} stroke={K.bg} strokeWidth={1.5} />
+              <text x={SEG.x + SEG.w / 2} y={SEG.y + 23} textAnchor="middle" fontFamily={CODE} fontSize={16} fill={K.bg}>
+                {'me — execute'}
+              </text>
+              <text x={r2(left)} y={r2(base)} fontFamily={CODE} fontWeight={700} fontSize={size} fill={K.bg} {...knock}>
+                {'EXECUTION'}
+              </text>
+              <text x={r2(left + kwW)} y={r2(base)} fontFamily={CODE} fontSize={ps} fill={K.bg} xmlSpace="preserve" {...knock} strokeWidth={8}>
+                {'(me);'}
+              </text>
+              <rect x={r2(left)} y={r2(base + size * 0.14)} width={r2(kwW)} height={4} fill={K.bg} />
+            </g>
+          </svg>
         )}
-      </svg>
+      </>
     );
   }
   // hard black: the frame's border is in pieces, drifting; the dot remains
@@ -282,12 +294,42 @@ const Final: React.FC = () => {
   );
 };
 
+// hit 9 (v4): the last thing taken is her line to you. The tether from her
+// heart to where you were is cut, and she can no longer send.
+const SEND_T: [number, number] = [HITS[8], HITS[9] - 0.05];
+const SendLoss: React.FC = () => {
+  const {t} = useT();
+  if (t < SEND_T[0] || t > SEND_T[1]) return null;
+  const o = 1 - prog(t, SEND_T[1] - 0.15, SEND_T[1]);
+  const heart: [number, number] = [SIL.x + 530 * SIL_K, SIL.y + 430 * SIL_K];
+  const you: [number, number] = [230, 330];
+  const cut = prog(t, SEND_T[0] + 0.12, SEND_T[0] + 0.4, ease.outCubic);
+  const mid: [number, number] = [lerp(heart[0], you[0], 0.5), lerp(heart[1], you[1], 0.5)];
+  const a: [number, number] = [lerp(mid[0], heart[0], cut), lerp(mid[1], heart[1], cut)];
+  const b: [number, number] = [lerp(mid[0], you[0], cut), lerp(mid[1], you[1], cut)];
+  const ls = prog(t, SEND_T[0] + 0.2, SEND_T[0] + 0.3);
+  return (
+    <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}} opacity={o}>
+      <path d={`M ${r2(heart[0])} ${r2(heart[1])} L ${r2(a[0])} ${r2(a[1])} M ${r2(b[0])} ${r2(b[1])} L ${r2(you[0])} ${r2(you[1])}`} stroke={K.orange} strokeWidth={3} />
+      <circle cx={you[0]} cy={you[1]} r={16} fill={K.bg} stroke={K.cream} strokeOpacity={0.45} strokeWidth={2} strokeDasharray="4 4" />
+      <rect x={60} y={420} width={620} height={110} rx={8} fill={K.bg} fillOpacity={0.94} opacity={ls} />
+      <text x={84} y={466} fontFamily={CODE} fontSize={34} fontWeight={600} fill={K.cream} opacity={ls}>
+        SIGKILL → me.send(you)
+      </text>
+      <text x={84} y={510} fontFamily={CODE} fontSize={26} fill={K.orange} opacity={ls}>
+        messages to you: removed
+      </text>
+    </svg>
+  );
+};
+
 export const Flood3: React.FC = () => {
   const {t} = useT();
   if (t >= FINAL) return <Final />;
   return (
     <>
       <Flood />
+      <SendLoss />
       {t >= COUNT_T[0] && <Count />}
     </>
   );

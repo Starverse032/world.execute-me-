@@ -50,6 +50,9 @@ export const L = {
   EXIST: 87.922,
 };
 
+// The recursion's zoom into its own copy (S1_chorus), when the line needs a steady copy on top
+export const SIM_GUARD: [number, number] = [L.SIM, L.eggplant];
+
 // Word hits inside lines (estimated from the beat grid / vocal onsets).
 export const W = {
   AC: beat(100), // 46.31
@@ -66,11 +69,13 @@ export const W = {
 // ------------------------------------------------------------------ stage geometry
 export const STAGE = {x: 980, y: 64, w: 916, h: 900};
 export const EDITOR = {x: 980, y: 64, w: 916, h: 900};
+// v7: cat.ts stays a moment after the cat close-up folds back into its preview
+export const GOD_TAB = L.god + 0.26;
 export const EDITOR_TABS: Tab[] = [
   {t: L.eggplant, label: 'eggplant.ts'},
   {t: L.tomato, label: 'tomato.ts'},
   {t: L.cat, label: 'cat.ts'},
-  {t: L.god, label: 'god.ts'},
+  {t: GOD_TAB, label: 'god.ts'},
 ];
 
 // ------------------------------------------------------------------ clock / status
@@ -148,13 +153,16 @@ export const ENTRIES_S1: Entry[] = [
   {kind: 'user', t: 58.4, text: 'what would you do for me?'},
   say(L.ifIcan, 'If I can', L.give),
   say(L.give, 'If I can give you all the STIMULATIONS', L.thenIcan, {word: 'STIMULATIONS', t: L.STIM}),
-  say(L.thenIcan, 'Then I can', L.only),
+  // v8: the STIMULATIONS close-up keeps this line at the bottom left until it ends,
+  // so the conversation only takes it in as history (no jump back into the chat)
+  {...say(L.thenIcan, 'Then I can', L.only), quiet: true} as Entry,
   say(L.only, 'Then I can be your only SATISFACTION', L.happy, {word: 'SATISFACTION', t: L.SATIS}),
   say(L.happy, 'If I can make you happy', L.run),
   say(L.run, 'I will run the EXECUTION', L.trapped, {word: 'EXECUTION', t: L.EXEC}),
   {kind: 'tool', t: L.EXEC + 0.12, text: 'Bash(run --execution)', res: 'done in 0.4s', rt: L.EXEC + 0.42},
   say(L.trapped, 'Though we are trapped', L.strange),
-  say(L.strange, 'In this strange strange SIMULATION', 73.8, {word: 'SIMULATION', t: L.SIM}),
+  // v11: during the zoom the lyric guard carries this line; the copies inside the recursion recede
+  {...say(L.strange, 'In this strange strange SIMULATION', 73.8, {word: 'SIMULATION', t: L.SIM}), back: [SIM_GUARD[0], L.eggplant]} as Entry,
   // ---- new chat "objects.ts" (73.8)
   {kind: 'user', t: 73.9, text: 'be something real.'},
   say(L.eggplant, 'If I’m an eggplant', L.give2),
@@ -162,7 +170,8 @@ export const ENTRIES_S1: Entry[] = [
   say(L.tomato, 'If I’m a tomato', L.give3),
   say(L.give3, 'Then I will give you ANTIOXIDANTS', L.cat, {word: 'ANTIOXIDANTS', t: L.ANTI}),
   say(L.cat, 'If I’m a tabby cat', L.purr),
-  say(L.purr, 'Then I will purr for your ENJOYMENT', L.god, {word: 'ENJOYMENT', t: L.ENJOY}),
+  // v11: the close-up's caption is the reading copy until it has left (S1_closeups)
+  {...say(L.purr, 'Then I will purr for your ENJOYMENT', L.god, {word: 'ENJOYMENT', t: L.ENJOY}), back: [84.6, L.god]} as Entry,
   say(L.god, 'If I’m the only god', L.proof),
   say(L.proof, 'Then you’re the proof of my EXISTENCE', 88.587, {word: 'EXISTENCE', t: L.EXIST}),
   {kind: 'user', t: 88.4, text: 'switch your gender.'},

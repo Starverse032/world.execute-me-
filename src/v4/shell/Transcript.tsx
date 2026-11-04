@@ -20,6 +20,8 @@ export type SayEntry = Base & {
   marks?: [number, number][]; // [charIndex, t]: the part from charIndex starts streaming at t
   end?: number; // stream must finish by this time (default: next say − 0.1)
   kw?: string[]; // explicit keyword list (default: ALL-CAPS words)
+  quiet?: boolean; // v8: shown straight away as history (small, dim, whole), because a full-frame shot carries it as the live line
+  back?: [number, number]; // v11: low contrast over this span, because a caption above carries the line (in every recursive copy too)
 };
 export type ToolEntry = Base & {
   kind: 'tool';
@@ -184,16 +186,17 @@ export const Transcript: React.FC<{
     if (e.kind === 'say') {
       const L = sayLayout(e.text, sayW, e.kw, TR.sayBig, ready);
       const ns = nextSay(e.t);
-      const shrink = ns !== undefined && ns <= t ? ease.outCubic(clamp01((t - ns) * FPS / 8)) : 0;
+      const shrink = e.quiet ? 1 : ns !== undefined && ns <= t ? ease.outCubic(clamp01((t - ns) * FPS / 8)) : 0;
       const size = lerp(TR.sayBig, TR.saySmall, shrink);
       const sc = size / TR.sayBig;
       const lh = TR.sayBig * TR.sayLH * sc;
       const full = L.lines.length * lh;
       const end = e.end ?? (ns !== undefined ? ns - 0.1 : Infinity);
       const rate = Math.max(40, isFinite(end) ? L.len / Math.max(0.05, end - e.t) : 40);
-      const n = streamed(L.len, t, e.t, rate, e.marks);
+      const n = e.quiet ? L.len : streamed(L.len, t, e.t, rate, e.marks);
       const streaming = n < L.len;
-      const o = lerp(1, 0.45, shrink);
+      const back = e.back ? clamp01((t - e.back[0]) * FPS / 3) * (1 - clamp01((t - e.back[1]) * FPS / 3)) : 0;
+      const o = lerp(1, 0.45, shrink) * (1 - 0.8 * back);
       const maxW = Math.max(...L.widths) * sc;
       const sx = sw * Math.max(0, w - TR.sayIndent - maxW - 8);
       laid.push({
@@ -311,10 +314,11 @@ export const Transcript: React.FC<{
             <g opacity={appear} transform={jit ? `translate(${r2(jit)} 0)` : undefined}>
               <circle cx={9} cy={r2(by)} r={4.5 * (running ? 1 + 0.35 * pulse(t) : 1)} fill={running ? K.orange : K.creamDim} />
               <text x={TR.sayIndent} y={r2(by + TR.tool * 0.36)} fontFamily={CODE} fontSize={TR.tool} xmlSpace="preserve">
-                <tspan fill={K.cream} fontWeight={600}>
+                {/* v4: ordinary tool logs step back behind the lyrics */}
+                <tspan fill={K.cream} fillOpacity={0.6} fontWeight={600}>
                   {corruptAmt ? corrupt(shownName, t, corruptAmt * 0.6, k) : shownName}
                 </tspan>
-                <tspan fill={K.creamDim}>{corruptAmt ? corrupt(shownArgs, t, corruptAmt * 0.6, k + 1) : shownArgs}</tspan>
+                <tspan fill={K.creamDim} fillOpacity={0.7}>{corruptAmt ? corrupt(shownArgs, t, corruptAmt * 0.6, k + 1) : shownArgs}</tspan>
                 {runs.length > 1 && <tspan fill={K.orange} fontWeight={700}>{`  ×${runs.length}`}</tspan>}
               </text>
               {resP > 0 &&

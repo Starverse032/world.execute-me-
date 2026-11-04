@@ -3,14 +3,17 @@
 // is plotted in the preview pane under the code (eggplant, tomato, tabby cat,
 // the only god). EXISTENCE: the eye opens inside god.ts's preview.
 import React from 'react';
-import {ease, env, K, lastOnset, prog, pulse, useT} from '../../v3/core';
+import {Img, staticFile} from 'remotion';
+import {ease, env, K, lerp, prog, pulse, useT} from '../../v3/core';
+import {YouNodeG} from '../shell/Composer';
 import {LineArt} from '../char/LineArt';
 import {CodeBlock} from '../shell/Code';
 import {KwCode} from '../shell/KwCode';
 import {r2} from '../shell/lib';
 import {Win} from '../shell/Win';
-import {At, circD, DEG, HoldImages, ellD, Mono, P, P2, poly, pp, TAU} from './S1_lib';
-import {EDITOR, EDITOR_TABS, L} from './s1.data';
+import {At, circD, DEG, HoldImages, ellD, Mono, P, P2, poly, pp} from './S1_lib';
+import {EDITOR, EDITOR_TABS, GOD_TAB, L} from './s1.data';
+import {CAT_PV} from './S1_closeups';
 
 // body coordinates (origin = editor top-left + (0, 66))
 const BW = EDITOR.w, BH = EDITOR.h - 66;
@@ -44,7 +47,7 @@ export const FILES: File[] = [
   },
   {
     lines: ['// if I’m the only god', 'interface God {', '  only: true;', '}', 'function exist(you?: You) {', '  return you ? EXISTENCE : null;', '}'],
-    type: [L.god + 0.12, L.proof + 0.95],
+    type: [GOD_TAB + 0.08, L.proof + 0.95],
     kwRow: 5,
     hit: L.EXIST,
     end: 999,
@@ -153,88 +156,52 @@ const Tomato: React.FC<{t: number}> = ({t}) => {
   );
 };
 
+// v7: cat.ts previews the very drawing the close-up folds back into (S1_closeups
+// CAT_PV): the cat-ear Claude with her paw up, a few still purr arcs, the result.
 const Cat: React.FC<{t: number}> = ({t}) => {
-  const [cx, cy0] = C;
-  const cy = cy0 + 40;
-  const t0 = L.cat + 0.15;
-  const hit = L.ENJOY;
-  const happy = prog(t, hit, hit + 0.15, ease.outCubic);
-  const ears: P2[][] = [
-    [
-      [cx - 112, cy - 46],
-      [cx - 100, cy - 178],
-      [cx - 30, cy - 116],
-    ],
-    [
-      [cx + 112, cy - 46],
-      [cx + 100, cy - 178],
-      [cx + 30, cy - 116],
-    ],
-  ];
-  const almond = (ex: number) => `M ${ex - 24} ${cy - 8} Q ${ex} ${cy - 30} ${ex + 24} ${cy - 8} Q ${ex} ${cy + 14} ${ex - 24} ${cy - 8}`;
-  const arc = (ex: number) => `M ${ex - 22} ${cy - 4} Q ${ex} ${cy - 26} ${ex + 22} ${cy - 4}`;
-  const whisk: string[] = [];
-  for (let s = -1; s <= 1; s += 2)
-    for (let k = -1; k <= 1; k++) whisk.push(`M ${cx + s * 52} ${cy + 46 + k * 6} L ${cx + s * 170} ${cy + 40 + k * 24}`);
-  // purr waves: rings out of the head on every beat from "purr"
-  const purr: React.ReactNode[] = [];
-  if (t >= L.purr)
-    for (let j = 0; j < 3; j++) {
-      const ob = lastOnset(t) - j * 0.4615;
-      if (ob < L.purr) continue;
-      const q = (t - ob) / 1.2;
-      if (q > 1) continue;
-      const R = 140 + 120 * q;
-      const pts: P2[] = [];
-      for (let k = 0; k <= 120; k++) {
-        const a = (k / 120) * TAU;
-        const rr = R + 5 * Math.sin(a * 14 + t * 20);
-        pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]);
-      }
-      purr.push(<path key={j} d={poly(pts)} fill="none" stroke={K.cream} strokeWidth={1} opacity={0.45 * (1 - q)} />);
+  const fx = CAT_PV.x, fy = CAT_PV.y, k = CAT_PV.h / 1536;
+  const th: P2 = [fx + 520 * k, fy + 735 * k];
+  const arcs: React.ReactNode[] = [];
+  for (let j = 0; j < 3; j++) {
+    const R = 120 + 70 * j;
+    const pts: P2[] = [];
+    for (let i = 0; i <= 40; i++) {
+      const a = (140 + (85 * i) / 40) * DEG;
+      pts.push([th[0] + Math.cos(a) * R, th[1] + Math.sin(a) * R]);
     }
-  return (
+    arcs.push(<path key={j} d={poly(pts)} fill="none" stroke={j === 0 ? K.orange : K.cream} strokeOpacity={0.5 - 0.12 * j} strokeWidth={1.5} />);
+  }
+  return t >= L.ENJOY ? (
     <>
-      {purr}
-      <P d={circD(cx, cy, 128)} p={pp(t, t0, 0.45)} t={t} w={2} />
-      {ears.map((e, i) => (
-        <P key={i} d={poly(e)} p={pp(t, t0 + 0.45 + i * 0.12, 0.2)} t={t} w={2} />
-      ))}
-      {[-48, 48].map((dx, i) =>
-        happy < 1 ? (
-          <g key={i} opacity={1 - happy}>
-            <P d={almond(cx + dx)} p={pp(t, t0 + 0.8 + i * 0.1, 0.18)} t={t} w={1.5} />
-            {t > t0 + 1.0 && <path d={`M ${cx + dx} ${cy - 22} L ${cx + dx} ${cy + 6}`} stroke={K.orange} strokeWidth={3} strokeLinecap="round" />}
-          </g>
-        ) : null,
-      )}
-      {happy > 0 && [-48, 48].map((dx, i) => <P key={'h' + i} d={arc(cx + dx)} p={happy} t={t} color={K.orange} w={3} pen={false} />)}
-      <P d={`M ${cx - 10} ${cy + 30} L ${cx + 10} ${cy + 30} L ${cx} ${cy + 40} Z`} p={pp(t, t0 + 1.05, 0.12)} t={t} color={K.orange} w={1.5} />
-      <P d={`M ${cx - 24} ${cy + 52} Q ${cx - 12} ${cy + 64} ${cx} ${cy + 46} Q ${cx + 12} ${cy + 64} ${cx + 24} ${cy + 52}`} p={pp(t, t0 + 1.15, 0.15)} t={t} w={1.5} />
-      {whisk.map((d, i) => (
-        <P key={i} d={d} p={pp(t, t0 + 1.25 + i * 0.04, 0.12)} t={t} w={1} o={0.7} pen={false} />
-      ))}
-      {[-26, 0, 26].map((dx, i) => (
-        <P key={'s' + i} d={`M ${cx + dx - 8} ${cy - 118} Q ${cx + dx} ${cy - 96} ${cx + dx + 8} ${cy - 76}`} p={pp(t, t0 + 1.55 + i * 0.06, 0.12)} t={t} color={K.orange} w={2} pen={false} />
-      ))}
-      <Mono x={cx} y={cy + 196} s={16} c={happy > 0 ? K.orange : K.creamDim} anchor="middle" o={prog(t, L.purr, L.purr + 0.2)}>
-        {happy > 0 ? 'purr() → ENJOYMENT' : 'purr.hz = 25'}
+      {arcs}
+      <Mono x={BW - 26} y={BH - 24} s={16} c={K.orange} anchor="end">
+        {'purr() → ENJOYMENT'}
       </Mono>
     </>
-  );
+  ) : null;
 };
+const CatPreview: React.FC = () => (
+  <div style={{position: 'absolute', left: 0, top: 0, width: BW, height: BH, clipPath: `inset(${EYE_TOP}px 0 0 0)`}}>
+    <Img src={staticFile('la3x/cat_smile.png')}style={{position: 'absolute', left: CAT_PV.x, top: CAT_PV.y, height: CAT_PV.h, width: (CAT_PV.h * 1024) / 1536}} />
+  </div>
+);
 
-// the eye line art (EXISTENCE): crop around the iris, opens from its centre line
-const EYE_CROP: [number, number, number, number] = [590, 275, 1390, 775];
+// the eye line art (EXISTENCE): crop around the iris, opens from its centre line.
+// v7: the crop fills the preview pane between its label row and a result strip
+// (where EXISTENCE lands), so the picture's edges are the window's own edges
+// and dividers (no floating rectangle).
+const EYE_TOP = DIV_Y + 40;
+const EYE_BOT = BH - 96;
+const EYE_CROP: [number, number, number, number] = [500, 321, 1480, 729];
 const EYE_CY = 525;
-const EYE_K = 0.84;
-const EYE_W = (EYE_CROP[2] - EYE_CROP[0]) * EYE_K;
-const EYE_X = C[0] - EYE_W / 2, EYE_Y = DIV_Y + 40;
+const EYE_K = BW / (EYE_CROP[2] - EYE_CROP[0]);
+const EYE_W = BW;
+const EYE_X = 0, EYE_Y = EYE_TOP;
 const eyeOpen = (t: number) => prog(t, L.EXIST - 0.02, L.EXIST + 0.42, ease.outCubic);
 
 const God: React.FC<{t: number}> = ({t}) => {
   const [cx, cy] = [C[0], EYE_Y + (EYE_CY - EYE_CROP[1]) * EYE_K];
-  const t0 = L.god + 0.2;
+  const t0 = GOD_TAB + 0.06;
   const iconO = 1 - prog(t, L.EXIST - 0.05, L.EXIST + 0.3);
   const rays: React.ReactNode[] = [];
   for (let i = 0; i < 16; i++) {
@@ -273,6 +240,8 @@ const GodEye: React.FC<{t: number}> = ({t}) => {
     <>
       <HoldImages style={{clipPath: `inset(${r2(lidY0)}px 0 ${r2(Math.max(0, BH - lidY1))}px 0)`}}>
         <LineArt pose="eye" x={EYE_X} y={EYE_Y} scale={EYE_K} crop={EYE_CROP} opacity={prog(t, L.EXIST - 0.02, L.EXIST + 0.1)} />
+        {/* "be something real.": once open, the eye floods with flat colour */}
+        {t >= L.EXIST + 0.12 && <LineArt pose="eye" x={EYE_X} y={EYE_Y} scale={EYE_K} crop={EYE_CROP} src={staticFile('la/eye_flat.png')} pen={false} opacity={prog(t, L.EXIST + 0.12, L.EXIST + 0.3, ease.inOutCubic)} />}
       </HoldImages>
       <At o={1 - prog(t, L.EXIST + 0.3, L.EXIST + 0.6)}>
         <path d={`M ${r2(EYE_X)} ${r2(lidY0)} L ${r2(EYE_X + EYE_W)} ${r2(lidY0)} M ${r2(EYE_X)} ${r2(lidY1)} L ${r2(EYE_X + EYE_W)} ${r2(lidY1)}`} stroke={K.orange} strokeWidth={2} />
@@ -292,11 +261,20 @@ const EditorBody: React.FC<{t: number}> = ({t}) => {
   return (
     <>
       <CodeBlock key={'c' + i} x={26} y={20} size={21} lines={f.lines} lang="ts" typeOn={f.type} caret highlight={hl} w={BW - 60} />
+      {i === 2 && t >= L.cat && <CatPreview />}
       <At>
         <path d={`M 0 ${DIV_Y} L ${BW} ${DIV_Y}`} stroke={K.cream} strokeOpacity={0.25} strokeWidth={1} />
         <Mono x={26} y={DIV_Y + 26} s={13}>
           {`preview · ${NAMES[i]}`}
         </Mono>
+        {i === 3 && t >= L.EXIST - 0.1 && (
+          <g opacity={prog(t, L.EXIST - 0.1, L.EXIST + 0.1)}>
+            <path d={`M 0 ${EYE_TOP} L ${BW} ${EYE_TOP} M 0 ${EYE_BOT} L ${BW} ${EYE_BOT}`} stroke={K.cream} strokeOpacity={0.25} strokeWidth={1} />
+            <Mono x={BW - 26} y={DIV_Y + 26} s={13} anchor="end">
+              {'sample · eye · 1:1'}
+            </Mono>
+          </g>
+        )}
         <Icon t={t} />
       </At>
       {i === 3 && <GodEye t={t} />}
@@ -320,10 +298,17 @@ export const VerseOverlay: React.FC = () => {
   const sx = EDITOR.x + EDITOR.w / 2;
   return (
     <>
-      <KwCode t0={L.NUTR} t1={L.tomato - 0.12} pre="give(" kw="NUTRIENTS" post=")" x={sx} y={928} size={112} a={0} />
-      <KwCode t0={L.ANTI} t1={L.cat - 0.12} pre="give(" kw="ANTIOXIDANTS" post=")" x={sx} y={928} size={98} a={0} />
-      <KwCode t0={L.ENJOY} t1={L.god - 0.12} pre="purr(): " kw="ENJOYMENT" post=";" x={sx} y={928} size={108} a={0} />
+      <KwCode t0={L.NUTR} t1={L.tomato - 0.22} pre="give(" kw="NUTRIENTS" post=")" x={sx} y={928} size={112} a={0} />
+      <KwCode t0={L.ANTI} t1={L.cat - 0.22} pre="give(" kw="ANTIOXIDANTS" post=")" x={sx} y={928} size={98} a={0} />
+      {/* v7: under the cat close-up; gone before the close-up folds back into the preview */}
+      <KwCode t0={L.ENJOY} t1={84.7} pre="purr(): " kw="ENJOYMENT" post=";" x={sx} y={928} size={108} a={0} />
       <KwCode t0={L.EXIST} t1={88.38} pre="return you ? " kw="EXISTENCE" post=" : null;" x={sx} y={952} size={80} a={0} />
+      {/* v5: "proof of my existence": the cursor comes to her eye and clicks; the eye opens and lights */}
+      {t >= L.proof && t < 88.5 && (
+        <svg width={1} height={1} style={{position: 'absolute', left: 0, top: 0, overflow: 'visible'}}>
+          <YouNodeG t={t} x={lerp(1700, 1470, prog(t, L.proof, L.EXIST - 0.1, ease.inOutCubic))} y={lerp(1040, 720, prog(t, L.proof, L.EXIST - 0.1, ease.inOutCubic))} pings={[L.EXIST - 0.02]} opacity={1 - prog(t, 88.3, 88.5)} scale={1.3} />
+        </svg>
+      )}
     </>
   );
 };

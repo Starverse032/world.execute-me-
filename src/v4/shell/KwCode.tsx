@@ -3,7 +3,8 @@
 // pre / post: mono creamDim at 0.42 × size; kw: mono 700 orange at size.
 // Timeline: pre types over the 4 frames before t0 · kw slams in at t0 (scale
 // 1.04 → 1 over 4 frames) · post types after it · at t1 everything deletes
-// right-to-left like a backspace (6 frames).
+// right-to-left like a backspace (6 frames), so t1 comes at least 0.2 s before
+// the next sung line and the whole statement, caret included, is gone by then.
 import React from 'react';
 import {clamp01, ease, FPS, K, useT} from '../../v3/core';
 import {anomaly, band, corrupt, stepJ} from '../chaos';

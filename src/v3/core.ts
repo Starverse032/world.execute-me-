@@ -1,6 +1,6 @@
 // Shared tokens, fonts, timing and easing for the v3 (minimal geometric) demo.
 // Design spec: docs/design_v3.md. Every element is a pure function of t = frame / 30.
-import {continueRender, delayRender, staticFile, useCurrentFrame} from 'remotion';
+import {continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import beats from '../beats.json';
 
 // ------------------------------------------------------------------ colours
@@ -49,9 +49,12 @@ export const END = 46.0; // demo end
 export const SONG = 211.96; // full song length
 
 // ------------------------------------------------------------------ time
+// t is always in seconds. FPS stays the timeline's unit (30 steps a second) for
+// stepped effects; a composition may render more finely than that (Release120).
 export const useT = () => {
   const frame = useCurrentFrame();
-  return {frame, t: frame / FPS};
+  const {fps} = useVideoConfig();
+  return {frame, t: frame / fps};
 };
 export const fr = (t: number) => Math.round(t * FPS);
 
